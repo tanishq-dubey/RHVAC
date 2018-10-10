@@ -13,6 +13,34 @@ import signal
 import sys
 import threading
 
+class State(enum):
+    OFF = 0
+    HEATING = 1
+    COOLING = 2
+    FAN_ONLY = 3
+
+class CircularBuffer:
+    size = 0
+    data = []
+    index = 0
+
+    def __init__(self, size):
+        self.size = size
+        self.data = [None] * size
+        self.index = 0
+
+    def write(self, value):
+        self.data[self.index] = value
+        self.index = self.index + 1
+        if self.index >= self.size:
+            self.index = 0
+
+    def read(self):
+        return self.data[self.index]
+
+    def read_all(self):
+        return [x for x in self.data if x]
+
 # Relay pins (not GPIO pins)
 #              1   2   3   4   5   6   7   8
 relay_pins = [36, 11, 13, 15, 16, 18, 22, 31]
@@ -48,37 +76,6 @@ ideal_temp = 72.0
 c_buf = CircularBuffer(60)
 
 c_state = State.OFF
-
-
-
-class State(enum):
-    OFF = 0
-    HEATING = 1
-    COOLING = 2
-    FAN_ONLY = 3
-
-class CircularBuffer:
-    size = 0
-    data = []
-    index = 0
-
-    def __init__(self, size):
-        self.size = size
-        self.data = [None] * size
-        self.index = 0
-
-    def write(self, value):
-        self.data[self.index] = value
-        self.index = self.index + 1
-        if self.index >= self.size:
-            self.index = 0
-
-    def read(self):
-        return self.data[self.index]
-
-    def read_all(self):
-        return [x for x in self.data if x]
-
 
 # Just turn on the fans
 def enable_fans_only(fan_speed_high=False):
