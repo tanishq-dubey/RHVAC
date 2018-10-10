@@ -210,17 +210,25 @@ def main():
         temps = c_buf.read_all()
         curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
         diff = round(curr_temp - ideal_temp, 2)
+        print("Current status: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
         if diff > 4.0 and (c_state == State.OFF):
             print("Enable cooling: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
             c_state = State.COOLING
             enable_cooling()
         if diff < -4.0 and (c_state == State.OFF):
             print("Enable Heating: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
-            # enable_heating
-        if abs(diff) < 0.5 and (c_state != State.OFF):
-            print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
-            c_state = State.OFF
-            disable_cooling()
+            # enable_heating()\
+        if c_state == State.COOLING:
+            if curr_temp < ideal_temp or abs(diff) < 0.5:
+                print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
+                c_state = State.OFF
+                disable_cooling()
+        elif c_state == State.HEATING:
+            if curr_temp > ideal_temp or abs(diff) < 0.5:
+                print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
+                c_state = State.OFF
+                disable_heating()
+
         time.sleep(5)
 
 if __name__ == "__main__":
