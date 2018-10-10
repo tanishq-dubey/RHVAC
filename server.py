@@ -78,7 +78,7 @@ c_buf = CircularBuffer(60)
 
 c_state = State.OFF
 
-signal.signal(signal.SIGINT, signal_handler)
+
 
 # Just turn on the fans
 def enable_fans_only(fan_speed_high=False):
@@ -195,6 +195,7 @@ def signal_handler(sig, frame):
     for pin in relay_pins:
         GPIO.output(pin, True)
     sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
 
 def main():
     global c_buf
