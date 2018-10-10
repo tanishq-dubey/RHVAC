@@ -65,7 +65,7 @@ class CircularBuffer:
     def __init__(self, size):
         self.size = size
         self.data = [None] * size
-        self.index = 0:
+        self.index = 0
 
     def write(self, value):
         self.data[self.index] = value
