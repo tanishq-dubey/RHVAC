@@ -207,3 +207,6 @@ def main():
             c_state = State.OFF
             disable_cooling()
         time.sleep(5)
+
+if __name__ == "__main__":
+    main()
