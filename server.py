@@ -174,6 +174,7 @@ def measure_temp():
     time.sleep(3)
 
 def init_relays():
+    GPIO.setmode(GPIO.BOARD)
     for pin in relay_pins:
         GPIO.setup(pin, GPIO.OUT, initial=GPIO.HIGH)
 
