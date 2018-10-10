@@ -14,7 +14,7 @@ import sys
 import threading
 from enum import Enum
 
-class State(enum):
+class State(Enum):
     OFF = 0
     HEATING = 1
     COOLING = 2
