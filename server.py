@@ -161,6 +161,7 @@ def disable_heating(fan_speed_high=False):
     disable_fans_only(fan_speed_high)
 
 def measure_temp_threaded():
+    global c_buf
     humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, temp_pin)
     temperature = temperature * 9/5.0 + 32
     c_buf.write(temperature)
@@ -168,8 +169,11 @@ def measure_temp_threaded():
     threading.Thread(target=measure_temp_threaded).start()
 
 def measure_temp():
+    global c_buf
+    print("Measuring temp...")
     humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, temp_pin)
     temperature = temperature * 9/5.0 + 32
+    print("Read value of %f" % (temperature))
     c_buf.write(temperature)
     time.sleep(3)
 
@@ -186,6 +190,8 @@ def init_display():
     print("Display Inited..")
 
 def main():
+    global c_buf
+    global c_state
     init_relays()
     measure_temp()
     init_display()
@@ -195,16 +201,16 @@ def main():
     while True:
         temps = c_buf.read_all()
         curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
-        diff = curr_temp - ideal_temp
+        diff = round(curr_temp - ideal_temp, 2)
         if diff > 4.0 and (c_state == State.OFF):
-            print("Enable cooling: %d, %d=>%d" % (diff, curr_temp, ideal_temp))
+            print("Enable cooling: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
             c_state = State.COOLING
             enable_cooling()
         if diff < -4.0 and (c_state == State.OFF):
-            print("Enable Heating: %d, %d=>%d" % (diff, curr_temp, ideal_temp))
+            print("Enable Heating: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
             # enable_heating
         if abs(diff) < 0.5 and (c_state != State.OFF):
-            print("Turning off HVAC: %d, %d=>%d" % (diff, curr_temp, ideal_temp))
+            print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
             c_state = State.OFF
             disable_cooling()
         time.sleep(5)
