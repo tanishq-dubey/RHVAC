@@ -188,6 +188,7 @@ def measure_temp():
     time.sleep(3)
 
 def init_relays():
+    GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BOARD)
     for pin in relay_pins:
         GPIO.setup(pin, GPIO.OUT, initial=GPIO.HIGH)
@@ -207,6 +208,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def main():
     global c_buf
+    global c_state
     init_relays()
     measure_temp()
     init_display()
