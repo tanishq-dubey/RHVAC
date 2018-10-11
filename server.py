@@ -37,7 +37,7 @@ class CircularBuffer:
             self.index = 0
 
     def read(self):
-        return self.data[self.index]
+        return self.data[self.index - 1]
 
     def read_all(self):
         return [x for x in self.data if x]
