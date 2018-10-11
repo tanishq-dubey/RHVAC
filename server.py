@@ -251,10 +251,11 @@ def main():
         time.sleep(5)
 
 
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 if __name__ == "__main__":
     threading.Thread(target=main).start()
     app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
