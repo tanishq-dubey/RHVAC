@@ -81,11 +81,8 @@ c_buf = CircularBuffer(60)
 
 c_state = State.OFF
 
-app = None
+app = Flask(__name__)
 
-if __name__ == "__main__":
-    threading.Thread(target=main).start()
-    app = Flask(__name__)
 
 # Just turn on the fans
 def enable_fans_only(fan_speed_high=False):
@@ -260,3 +257,6 @@ def main():
 def index():
     return render_template('index.html')
 
+if __name__ == "__main__":
+    threading.Thread(target=main).start()
+    app.run(host=0.0.0.0, port=5000, debug=True)
