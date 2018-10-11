@@ -103,6 +103,8 @@ def disable_fans_only(fan_speed_high=False):
 #   least 4 minutes! This is to prevent compressor
 #   and pump damage (rapid cycling add extra wear)
 def enable_cooling(fan_speed_high=False):
+    global c_state
+    c_state = State.COOLING
     # Activate the desired fan. ONLY ACTIVATE ONE
     enable_fans_only(fan_speed_high)
 
@@ -120,6 +122,7 @@ def enable_cooling(fan_speed_high=False):
 #       for at least 90 seconds to cool the
 #       compressor and pump
 def disable_cooling(fan_speed_high=False):
+    global c_state
     # Stop cooling
     GPIO.output(cooling_relay, True)
     GPIO.output(reverse_relay, True)
@@ -129,6 +132,7 @@ def disable_cooling(fan_speed_high=False):
     time.sleep(90)
     # Deactivate the desired fan.
     disable_fans_only(fan_speed_high)
+    c_state = State.OFF
 
 # To start heating the room, do the following:
 #   1. Activate the fan at the desired speed
@@ -138,6 +142,8 @@ def disable_cooling(fan_speed_high=False):
 #   least 4 minutes! This is to prevent compressor
 #   and pump damage (rapid cycling add extra wear)
 def enable_heating(fan_speed_high=False):
+    global c_state
+    c_state = State.HEATING
     # Activate the desired fan. ONLY ACTIVATE ONE
     enable_fans_only(fan_speed_high)
 
@@ -153,6 +159,7 @@ def enable_heating(fan_speed_high=False):
 #       for at least 60 seconds to cool the
 #       compressor and pump
 def disable_heating(fan_speed_high=False):
+    global c_state
     # Stop Heating
     GPIO.output(heating_relay, True)
 
@@ -161,6 +168,7 @@ def disable_heating(fan_speed_high=False):
     time.sleep(60)
     # Deactivate the desired fan.
     disable_fans_only(fan_speed_high)
+    c_state = State.OFF
 
 def measure_temp_threaded():
     global c_buf
@@ -199,7 +207,6 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def main():
     global c_buf
-    global c_state
     init_relays()
     measure_temp()
     init_display()
@@ -210,24 +217,23 @@ def main():
         temps = c_buf.read_all()
         curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
         diff = round(curr_temp - ideal_temp, 2)
-        print("Current status: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
+        print("Current status: %f, %f=>%f\tLast read val: %f at idx %d" % (diff, curr_temp, ideal_temp, c_buf.read(), c_buf.index))
         if diff > 4.0 and (c_state == State.OFF):
             print("Enable cooling: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
-            c_state = State.COOLING
-            enable_cooling()
+            threading.Thread(target=enable_cooling).start()
         if diff < -4.0 and (c_state == State.OFF):
             print("Enable Heating: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
-            # enable_heating()\
+            # enable_heating()
         if c_state == State.COOLING:
             if curr_temp < ideal_temp or abs(diff) < 0.5:
                 print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
                 c_state = State.OFF
-                disable_cooling()
+                threading.Thread(target=disable_cooling).start()
         elif c_state == State.HEATING:
             if curr_temp > ideal_temp or abs(diff) < 0.5:
                 print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
                 c_state = State.OFF
-                disable_heating()
+                threading.Thread(target=disable_heating).start()
 
         time.sleep(5)
 
