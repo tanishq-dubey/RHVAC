@@ -81,7 +81,6 @@ c_buf = CircularBuffer(60)
 
 c_state = State.OFF
 
-app = Flask(__name__)
 
 # Just turn on the fans
 def enable_fans_only(fan_speed_high=False):
@@ -214,6 +213,8 @@ def main():
     global c_state
     global app
 
+    time.sleep(3)
+
     app.config['SECRET_KEY'] = 'secret'
     app.config['DEBUG'] = True
     socketio = SocketIO(app)
@@ -255,4 +256,5 @@ def index():
     return render_template('index.html')
 
 if __name__ == "__main__":
-    main()
+    threading.Thread(target=main).start()
+    app = Flask(__name__)
