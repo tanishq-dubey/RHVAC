@@ -1,6 +1,9 @@
 import RPi.GPIO as GPIO
 import Adafruit_DHT
 
+from flask import Flask, render_template, url_for, copy_current_request_context
+from flask_socketio import SocketIO, emit
+
 from luma.led_matrix.device import max7219
 from luma.core.interface.serial import spi, noop
 from luma.core.render import canvas
@@ -206,9 +209,19 @@ def signal_handler(sig, frame):
     sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
 
+@app.route('/')
+def index():
+    return render_template('index.html')
+
 def main():
     global c_buf
     global c_state
+
+    app = Flask(__name__)
+    app.config['SECRET_KEY'] = 'secret'
+    app.config['DEBUG'] = True
+    socketio = SocketIO(app)
+
     init_relays()
     measure_temp()
     init_display()
@@ -218,6 +231,7 @@ def main():
     while True:
         temps = c_buf.read_all()
         curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
+        socketio.emit('tempHeartbeat', {'temp': curr_temp}, namespace='/data')
         diff = round(curr_temp - ideal_temp, 2)
         print("Current status: %f, %f=>%f\tLast read val: %f at idx %d" % (diff, curr_temp, ideal_temp, c_buf.read(), c_buf.index))
         if diff > 4.0 and (c_state == State.OFF):
