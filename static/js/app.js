@@ -6,7 +6,7 @@ $(document).ready(function(){
     //receive details from server
     socket.on('tempHeartbeat', function(msg) {
         console.log("Received temp" + msg.temp);
-        $('#curr_temp').html(numbers_string);
+        $('#curr_temp').html(msg.temp);
     });
 
 });
