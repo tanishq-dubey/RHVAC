@@ -81,6 +81,8 @@ c_buf = CircularBuffer(60)
 
 c_state = State.OFF
 
+app = None
+
 if __name__ == "__main__":
     threading.Thread(target=main).start()
     app = Flask(__name__)
