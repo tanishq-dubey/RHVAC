@@ -314,11 +314,13 @@ def disable_system(msg):
         else:
             # Must be the fans
             disable_fans_only()
+    print("System disabled")
     system.enabled = False
 
 @socketio.on('enable_system')
 def enable_system(msg):
     global system
+    print("System enabled")
     system.enabled = True
 
 @socketio.on('set_temperature')
