@@ -15,21 +15,21 @@ import time
 import signal
 import sys
 import threading
-from enum import Enum
+from enum import IntEnum
 
-class State(Enum):
+class State(IntEnum):
     OFF = 0
     HEATING = 1
     COOLING = 2
     FAN_ONLY = 3
 
-class Mode(Enum):
+class Mode(IntEnum):
     COOL = 0
     HEAT = 1
     AUTO = 2
     FAN_ONLY = 3
 
-class FanSpeed(Enum):
+class FanSpeed(IntEnum):
     LOW = 0
     HIGH = 1
 
