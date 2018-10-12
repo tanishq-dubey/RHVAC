@@ -256,14 +256,14 @@ def main():
         print("Current status: %f, %f=>%f\tLast read val: %f" % (diff, curr_temp, system.desired_temperature, system.instant_temperature))
 
         if system.enabled:
-            if (diff > 4.0) and (system.current_state == State.OFF) and (system.desired_mode = Mode.AUTO or system.desired_mode = Mode.COOL):
+            if (diff > 4.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.COOL):
                 print("Enable cooling: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
                 socketio.emit('stateChange',
                         {'state': 'cooling', 'd_temp': system.desired_temperature, 'temp': system.current_temperature},
                         namespace='/data')
                 threading.Thread(target=enable_cooling).start()
 
-            if (diff < -4.0) and (system.current_state == State.OFF) and (system.desired_mode = Mode.AUTO or system.desired_mode = Mode.HEAT):
+            if (diff < -4.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.HEAT):
                 print("Enable Heating: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
                 socketio.emit('stateChange',
                         {'state': 'heating', 'd_temp': system.desired_temperature, 'temp': system.current_temperature},
