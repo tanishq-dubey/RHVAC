@@ -23,6 +23,11 @@ class State(Enum):
     COOLING = 2
     FAN_ONLY = 3
 
+class Mode(Enum):
+    HEAT = 0
+    COOL = 1
+    AUTO = 2
+
 class CircularBuffer:
     size = 0
     data = []
@@ -44,6 +49,20 @@ class CircularBuffer:
 
     def read_all(self):
         return [x for x in self.data if x]
+
+class System:
+    enabled = False
+    current_state = State.OFF
+    desired_mode = Mode.AUTO
+    current_temperature = 0.0
+    instant_temperature = 0.0
+    desired_temperature = 0.0
+
+    temps = CircularBuffer(60)
+    humid = CircularBuffer(60)
+
+    def __init(self):
+        pass
 
 # Relay pins (not GPIO pins)
 #              1   2   3   4   5   6   7   8
@@ -75,11 +94,7 @@ temp_pin = 12
 serial = None
 device = None
 
-ideal_temp = 72.0
-
-c_buf = CircularBuffer(60)
-
-c_state = State.OFF
+system = System()
 
 app = Flask(__name__)
 
@@ -107,8 +122,8 @@ def disable_fans_only(fan_speed_high=False):
 #   least 4 minutes! This is to prevent compressor
 #   and pump damage (rapid cycling add extra wear)
 def enable_cooling(fan_speed_high=False):
-    global c_state
-    c_state = State.COOLING
+    global system
+    system.current_state = State.COOLING
     # Activate the desired fan. ONLY ACTIVATE ONE
     enable_fans_only(fan_speed_high)
 
@@ -126,7 +141,7 @@ def enable_cooling(fan_speed_high=False):
 #       for at least 90 seconds to cool the
 #       compressor and pump
 def disable_cooling(fan_speed_high=False):
-    global c_state
+    global system
     # Stop cooling
     GPIO.output(cooling_relay, True)
     GPIO.output(reverse_relay, True)
@@ -136,7 +151,7 @@ def disable_cooling(fan_speed_high=False):
     time.sleep(90)
     # Deactivate the desired fan.
     disable_fans_only(fan_speed_high)
-    c_state = State.OFF
+    system.current_state = State.OFF
 
 # To start heating the room, do the following:
 #   1. Activate the fan at the desired speed
@@ -146,8 +161,8 @@ def disable_cooling(fan_speed_high=False):
 #   least 4 minutes! This is to prevent compressor
 #   and pump damage (rapid cycling add extra wear)
 def enable_heating(fan_speed_high=False):
-    global c_state
-    c_state = State.HEATING
+    global system
+    system.current_state = State.HEATING
     # Activate the desired fan. ONLY ACTIVATE ONE
     enable_fans_only(fan_speed_high)
 
@@ -163,7 +178,7 @@ def enable_heating(fan_speed_high=False):
 #       for at least 60 seconds to cool the
 #       compressor and pump
 def disable_heating(fan_speed_high=False):
-    global c_state
+    global system
     # Stop Heating
     GPIO.output(heating_relay, True)
 
@@ -172,23 +187,27 @@ def disable_heating(fan_speed_high=False):
     time.sleep(60)
     # Deactivate the desired fan.
     disable_fans_only(fan_speed_high)
-    c_state = State.OFF
+    system.current_state = State.OFF
 
 def measure_temp_threaded():
-    global c_buf
+    global system
     humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, temp_pin)
     temperature = temperature * 9/5.0 + 32
-    c_buf.write(temperature)
+    system.temps.write(temperature)
+    system.humid.write(humidity)
+    system.instant_temperature = temperature
     time.sleep(3)
     threading.Thread(target=measure_temp_threaded).start()
 
 def measure_temp():
-    global c_buf
+    global system
     print("Measuring temp...")
     humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, temp_pin)
     temperature = temperature * 9/5.0 + 32
-    print("Read value of %f" % (temperature))
-    c_buf.write(temperature)
+    print("Read value of %f with %f\% humidity" % (temperature, humidity))
+    system.temps.write(temperature)
+    system.humid.write(humidity)
+    system.instant_temperature = temperature
     time.sleep(3)
 
 def init_relays():
@@ -211,9 +230,8 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 def main():
-    global c_buf
-    global c_state
     global app
+    global system
 
     time.sleep(3)
 
@@ -228,27 +246,44 @@ def main():
     threading.Thread(target=measure_temp_threaded).start()
 
     while True:
-        temps = c_buf.read_all()
+        temps = system.temps.read_all()
+
         curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
-        socketio.emit('tempHeartbeat', {'temp': curr_temp}, namespace='/data')
+        system.current_temperature = curr_temp
         diff = round(curr_temp - ideal_temp, 2)
-        print("Current status: %f, %f=>%f\tLast read val: %f at idx %d" % (diff, curr_temp, ideal_temp, c_buf.read(), c_buf.index))
-        if diff > 4.0 and (c_state == State.OFF):
-            print("Enable cooling: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
-            threading.Thread(target=enable_cooling).start()
-        if diff < -4.0 and (c_state == State.OFF):
-            print("Enable Heating: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
-            # enable_heating()
-        if c_state == State.COOLING:
-            if curr_temp < ideal_temp or abs(diff) < 0.5:
-                print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
-                c_state = State.OFF
-                threading.Thread(target=disable_cooling).start()
-        elif c_state == State.HEATING:
-            if curr_temp > ideal_temp or abs(diff) < 0.5:
-                print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
-                c_state = State.OFF
-                threading.Thread(target=disable_heating).start()
+
+        socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)}, namespace='/data')
+        print("Current status: %f, %f=>%f\tLast read val: %f" % (diff, curr_temp, system.desired_temperature, system.instant_temperature))
+
+        if system.enabled:
+            if (diff > 4.0) and (system.current_state == State.OFF) and (system.desired_mode = Mode.AUTO or system.desired_mode = Mode.COOL):
+                print("Enable cooling: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
+                socketio.emit('stateChange',
+                        {'state': 'cooling', 'd_temp': system.desired_temperature, 'temp': system.current_temperature},
+                        namespace='/data')
+                threading.Thread(target=enable_cooling).start()
+
+            if (diff < -4.0) and (system.current_state == State.OFF) and (system.desired_mode = Mode.AUTO or system.desired_mode = Mode.HEAT):
+                print("Enable Heating: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
+                socketio.emit('stateChange',
+                        {'state': 'heating', 'd_temp': system.desired_temperature, 'temp': system.current_temperature},
+                        namespace='/data')
+                # enable_heating()
+
+            if system.current_state == State.COOLING:
+                if curr_temp < system.desired_temperature or abs(diff) < 0.5:
+                    print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
+                    socketio.emit('stateChange',
+                            {'state': 'off', 'd_temp': system.desired_temperature, 'temp': system.current_temperature},
+                            namespace='/data')
+                    threading.Thread(target=disable_cooling).start()
+            elif system.current_state == State.HEATING:
+                if curr_temp > system.desired_temperature or abs(diff) < 0.5:
+                    print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
+                    socketio.emit('stateChange',
+                            {'state': 'off', 'd_temp': system.desired_temperature, 'temp': system.current_temperature},
+                            namespace='/data')
+                    threading.Thread(target=disable_heating).start()
 
         time.sleep(5)
 
