@@ -204,7 +204,7 @@ def measure_temp():
     print("Measuring temp...")
     humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, temp_pin)
     temperature = temperature * 9/5.0 + 32
-    print("Read value of %f with %f\% humidity" % (temperature, humidity))
+    print("Read value of %f with humidity" % (temperature))
     system.temps.write(temperature)
     system.humid.write(humidity)
     system.instant_temperature = temperature
