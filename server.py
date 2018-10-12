@@ -250,7 +250,7 @@ def main():
 
         curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
         system.current_temperature = curr_temp
-        diff = round(curr_temp - ideal_temp, 2)
+        diff = round(curr_temp - system.desired_temperature, 2)
 
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)}, namespace='/data')
         print("Current status: %f, %f=>%f\tLast read val: %f" % (diff, curr_temp, system.desired_temperature, system.instant_temperature))
