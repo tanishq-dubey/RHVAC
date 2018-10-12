@@ -24,9 +24,14 @@ class State(Enum):
     FAN_ONLY = 3
 
 class Mode(Enum):
-    HEAT = 0
-    COOL = 1
+    COOL = 0
+    HEAT = 1
     AUTO = 2
+    FAN_ONLY = 3
+
+class FanSpeed(Enum):
+    LOW = 0
+    HIGH = 1
 
 class CircularBuffer:
     size = 0
@@ -54,15 +59,26 @@ class System:
     enabled = False
     current_state = State.OFF
     desired_mode = Mode.AUTO
+    fan_mode = FanSpeed.LOW
     current_temperature = 0.0
     instant_temperature = 0.0
-    desired_temperature = 0.0
+    desired_temperature = 75.0
 
     temps = CircularBuffer(60)
     humid = CircularBuffer(60)
 
     def __init(self):
-        pass
+        self.enabled = False
+        self.current_state = State.OFF
+        self.desired_mode = Mode.AUTO
+        self.fan_mode = FanSpeed.LOW
+        self.current_temperature = 0.0
+        self.instant_temperature = 0.0
+        self.desired_temperature = 75.0
+
+        self.temps = CircularBuffer(60)
+        self.humid = CircularBuffer(60)
+
 
 # Relay pins (not GPIO pins)
 #              1   2   3   4   5   6   7   8
@@ -97,7 +113,7 @@ device = None
 system = System()
 
 app = Flask(__name__)
-
+socketio = SocketIO(app)
 
 # Just turn on the fans
 def enable_fans_only(fan_speed_high=False):
@@ -232,12 +248,12 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
     global app
     global system
+    global socketio
 
     time.sleep(3)
 
     app.config['SECRET_KEY'] = 'secret'
     app.config['DEBUG'] = True
-    socketio = SocketIO(app)
 
     init_relays()
     measure_temp()
@@ -252,45 +268,72 @@ def main():
         system.current_temperature = curr_temp
         diff = round(curr_temp - system.desired_temperature, 2)
 
-        socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)}, namespace='/data')
+        socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
         print("Current status: %f, %f=>%f\tLast read val: %f" % (diff, curr_temp, system.desired_temperature, system.instant_temperature))
 
         if system.enabled:
             if (diff > 4.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.COOL):
                 print("Enable cooling: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
                 socketio.emit('stateChange',
-                        {'state': 'cooling', 'd_temp': system.desired_temperature, 'temp': system.current_temperature},
-                        namespace='/data')
+                        {'state': 'cooling', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
                 threading.Thread(target=enable_cooling).start()
 
             if (diff < -4.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.HEAT):
                 print("Enable Heating: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
                 socketio.emit('stateChange',
-                        {'state': 'heating', 'd_temp': system.desired_temperature, 'temp': system.current_temperature},
-                        namespace='/data')
-                # enable_heating()
+                        {'state': 'heating', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
+                threading.Thread(target=enable_heating).start()
 
             if system.current_state == State.COOLING:
                 if curr_temp < system.desired_temperature or abs(diff) < 0.5:
                     print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
                     socketio.emit('stateChange',
-                            {'state': 'off', 'd_temp': system.desired_temperature, 'temp': system.current_temperature},
-                            namespace='/data')
+                            {'state': 'off', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
                     threading.Thread(target=disable_cooling).start()
             elif system.current_state == State.HEATING:
                 if curr_temp > system.desired_temperature or abs(diff) < 0.5:
                     print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
                     socketio.emit('stateChange',
-                            {'state': 'off', 'd_temp': system.desired_temperature, 'temp': system.current_temperature},
-                            namespace='/data')
+                            {'state': 'off', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
                     threading.Thread(target=disable_heating).start()
 
         time.sleep(5)
 
-
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@socketio.on('disable_system')
+def disable_system(msg):
+    global system
+    if system.enabled:
+        if system.current_state == State.COOLING:
+            threading.Thread(target=disable_cooling).start()
+        elif system.current_state == State.HEATING:
+            threading.Thread(target=disable_heating).start()
+        else:
+            # Must be the fans
+            disable_fans_only()
+    system.enabled = False
+
+@socketio.on('enable_system')
+def enable_system(msg):
+    global system
+    system.enabled = True
+
+@socketio.on('set_temperature')
+def set_temperature(temp):
+    global system
+    system.desired_temperature = int(temp)
+
+@socketio.on('connect')
+def on_connect():
+    global system
+    socketio.emit('connected',
+        {'enabled': system.enabled,
+         'desired_mode': system.desired_mode,
+         'current_state': system.current_state,
+         'desired_temperature': system.desired_temperature})
 
 if __name__ == "__main__":
     threading.Thread(target=main).start()

@@ -12,25 +12,87 @@
   </head>
 
   <nav>
-    <div class="nav-wrapper amber accent-4">
-      <a href="#" class="brand-logo center">RHVAC</a>
+    <div id="navbarjs" class="nav-wrapper grey accent-4">
+      <a href="#" class="brand-logo black-text center">RHVAC</a>
     </div>
   </nav>
         
-  <body class="amber lighten-4">
+  <body class="grey lighten-4" id="background">
     <div class="container ">
       <div class="row">
         <div class="col s12 m6 offset-m3">
-          <div class="card amber lighten-2 z-depth-2 hoverable">
+          <div class="card grey lighten-2 z-depth-2 hoverable" id="card-temp-color">
             <div class="card-content activator white-text">
-              <span class="card-title activator center">Cooling to 70°</span>
-              <h1 class="center activator" id="curr_temp">0.0°</h1>
+              <span class="card-title activator black-text center">Cooling to 70°</span>
+              <h1 class="center black-text activator" id="curr_temp">-.-°</h1>
               <br>
-              <p class="center activator">Estimated time to target: 5 minutes</p>
+              <p class="center black-text activator"><span>asdf</span></p>
             </div>
             <div class="card-reveal">
               <span class="card-title grey-text text-darken-4">System Info<i class="material-icons right">close</i></span>
               <p>Here is some more information about this product that is only revealed once clicked on.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col s12 m6 offset-m3">
+          <div class="card grey lighten-2 z-depth-2 hoverable" id="card-ctrl-color">
+            <div class="card-content white-text">
+              <div class="switch center">
+                <span class="card-title black-text">System State</span>
+                <label>
+                  Disabled
+                  <input type="checkbox" id="enabled">
+                  <span class="lever"></span>
+                  Enabled
+                </label>
+              </div>
+              <div class="card-content black-text">
+                <h6>Desired Temp</h6>
+                <br>
+                <br>
+                <form action="#">
+                  <p class="range-field">
+                    <input type="range" id="desired-temp" min="60" max="90" />
+                  </p>
+                </form>
+                <br>
+                <h6>Mode</h6>
+                <form action="#" class="center">
+                  <label>
+                    <input name="group1" type="radio"/>
+                    <span>Cool</span>
+                  </label>
+
+                  <label>
+                    <input name="group1" type="radio"/>
+                    <span>Heat</span>
+                  </label>
+                  <label>
+                    <input name="group1" type="radio"/>
+                    <span>Auto</span>
+                  </label>
+                  <label>
+                    <input name="group1" type="radio"/>
+                    <span>Fan Only</span>
+                  </label>
+                </form>
+                <br>
+                <h6>Fan Speed</h6>
+                <form action="#" class="center">
+                  <label>
+                    <input name="group2" type="radio"/>
+                    <span>Low</span>
+                  </label>
+
+                  <label>
+                    <input name="group2" type="radio"/>
+                    <span>High</span>
+                  </label>
+                </form>
+                <br>
+              </div>
             </div>
           </div>
         </div>
