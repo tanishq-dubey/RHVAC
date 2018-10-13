@@ -389,6 +389,24 @@ def set_temperature(temp):
     system.desired_temperature = int(temp)
     lock.release()
 
+@socketio.on('set_mode')
+def set_temperature(mode):
+    global system
+    global lock
+
+    print("Got Mode: " + str(mode))
+    mode = int(mode)
+    lock.acquire()
+    if mode == 0:
+        system.desired_mode = Mode.COOL
+    elif mode == 1:
+        system.desired_mode = Mode.HEAT
+    elif mode == 2:
+        system.desired_mode = Mode.AUTO
+    else:
+        system.desired_mode = Mode.FAN_ONLY
+    lock.release()
+
 @socketio.on('connect')
 def on_connect():
     global system

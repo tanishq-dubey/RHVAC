@@ -31,12 +31,28 @@ $(document).ready(function(){
         console.log("State: " + msg.current_state);
         if (msg.current_state === 'State.OFF') {
             $('#current_status').html("System Off");
+            $('#background').removeClass("light-blue amber").addClass("grey");
+            $('#card-temp-color').removeClass("light-blue amber").addClass("grey");
+            $('#card-ctrl-color').removeClass("light-blue amber").addClass("grey");
+            $('#navbarjs').removeClass("light-blue amber").addClass("grey");
         } else if (msg.current_state === 'State.HEATING') {
             $('#current_status').html("Heating to " + msg.desired_temperature);
+            $('#background').removeClass("light-blue grey").addClass("amber");
+            $('#card-temp-color').removeClass("light-blue grey").addClass("amber");
+            $('#card-ctrl-color').removeClass("light-blue grey").addClass("amber");
+            $('#navbarjs').removeClass("light-blue grey").addClass("amber");
         } else if (msg.current_state === 'State.COOLING') {
             $('#current_status').html("Cooling to " + msg.desired_temperature);
+            $('#background').removeClass("amber grey").addClass("light-blue");
+            $('#card-temp-color').removeClass("amber grey").addClass("light-blue");
+            $('#card-ctrl-color').removeClass("amber grey").addClass("light-blue");
+            $('#navbarjs').removeClass("amber grey").addClass("light-blue");
         } else {
             $('#current_status').html("Fan only mode");
+            $('#background').removeClass("light-blue amber").addClass("grey");
+            $('#card-temp-color').removeClass("light-blue amber").addClass("grey");
+            $('#card-ctrl-color').removeClass("light-blue amber").addClass("grey");
+            $('#navbarjs').removeClass("light-blue amber").addClass("grey");
         }
 
     });
@@ -65,5 +81,17 @@ $(document).ready(function(){
     $('#desired-temp').change( function() {
         console.log(this.value);
         socket.emit('set_temperature', this.value);
+    });
+
+    $("input[name='mode_group']").change(function(e){
+        if ($(this).val() == '0') {
+            socket.emit('set_mode', 0);
+        } else if ($(this).val() == '1') {
+            socket.emit('set_mode', 1);
+        } else if ($(this).val() == '2') {
+            socket.emit('set_mode', 2);
+        } else if ($(this).val() == '3') {
+            socket.emit('set_mode', 3);
+        }
     });
 });
