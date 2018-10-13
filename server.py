@@ -114,6 +114,7 @@ serial = None
 device = None
 
 system = System()
+lock = Lock()
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -142,7 +143,11 @@ def disable_fans_only(fan_speed_high=False):
 #   and pump damage (rapid cycling add extra wear)
 def enable_cooling(fan_speed_high=False):
     global system
+    global lock
+
+    lock.acquire()
     system.current_state = State.COOLING
+    lock.release()
     # Activate the desired fan. ONLY ACTIVATE ONE
     enable_fans_only(fan_speed_high)
 
@@ -161,6 +166,8 @@ def enable_cooling(fan_speed_high=False):
 #       compressor and pump
 def disable_cooling(fan_speed_high=False):
     global system
+    global lock
+
     # Stop cooling
     GPIO.output(cooling_relay, True)
     GPIO.output(reverse_relay, True)
@@ -170,7 +177,9 @@ def disable_cooling(fan_speed_high=False):
     time.sleep(90)
     # Deactivate the desired fan.
     disable_fans_only(fan_speed_high)
+    lock.acquire()
     system.current_state = State.OFF
+    lock.release()
 
 # To start heating the room, do the following:
 #   1. Activate the fan at the desired speed
@@ -181,7 +190,11 @@ def disable_cooling(fan_speed_high=False):
 #   and pump damage (rapid cycling add extra wear)
 def enable_heating(fan_speed_high=False):
     global system
+    global lock
+
+    lock.acquire()
     system.current_state = State.HEATING
+    lock.release()
     # Activate the desired fan. ONLY ACTIVATE ONE
     enable_fans_only(fan_speed_high)
 
@@ -198,6 +211,7 @@ def enable_heating(fan_speed_high=False):
 #       compressor and pump
 def disable_heating(fan_speed_high=False):
     global system
+    global lock
     # Stop Heating
     GPIO.output(heating_relay, True)
 
@@ -206,27 +220,42 @@ def disable_heating(fan_speed_high=False):
     time.sleep(60)
     # Deactivate the desired fan.
     disable_fans_only(fan_speed_high)
+    lock.acquire()
     system.current_state = State.OFF
+    lock.release()
 
 def measure_temp_threaded():
     global system
+    global lock
+
     humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, temp_pin)
     temperature = temperature * 9/5.0 + 32
+
+    lock.acquire()
     system.temps.write(temperature)
     system.humid.write(humidity)
     system.instant_temperature = temperature
+    lock.release()
+
+
     time.sleep(3)
     threading.Thread(target=measure_temp_threaded).start()
 
 def measure_temp():
     global system
+    global lock
+
     print("Measuring temp...")
     humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, temp_pin)
     temperature = temperature * 9/5.0 + 32
     print("Read value of %f with humidity" % (temperature))
+
+    lock.acquire()
     system.temps.write(temperature)
     system.humid.write(humidity)
     system.instant_temperature = temperature
+    lock.release()
+
     time.sleep(3)
 
 def init_relays():
@@ -252,6 +281,7 @@ def main():
     global app
     global system
     global socketio
+    global lock
 
     time.sleep(3)
 
@@ -265,6 +295,7 @@ def main():
     threading.Thread(target=measure_temp_threaded).start()
 
     while True:
+        lock.acquire()
         temps = system.temps.read_all()
 
         curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
@@ -300,6 +331,7 @@ def main():
                     socketio.emit('stateChange',
                             {'state': 'off', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
                     threading.Thread(target=disable_heating).start()
+        lock.release()
 
         time.sleep(5)
 
@@ -310,28 +342,40 @@ def index():
 @socketio.on('disable_system')
 def disable_system(msg):
     global system
+    global lock
+
+    lock.acquire()
     if system.enabled:
         if system.current_state == State.COOLING:
             threading.Thread(target=disable_cooling).start()
         elif system.current_state == State.HEATING:
             threading.Thread(target=disable_heating).start()
         else:
-            # Must be the fans
             disable_fans_only()
-    print("System disabled")
+
     system.enabled = False
+    lock.release()
+    print("System disabled")
 
 @socketio.on('enable_system')
 def enable_system(msg):
     global system
-    print("System enabled")
+    global lock
+
+    lock.acquire()
     system.enabled = True
+    lock.release()
+    print("System enabled")
 
 @socketio.on('set_temperature')
 def set_temperature(temp):
     global system
+    global lock
+
     print(temp)
+    lock.acquire()
     system.desired_temperature = int(temp)
+    lock.release()
     print(system)
 
 @socketio.on('connect')
