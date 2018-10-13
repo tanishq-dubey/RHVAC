@@ -36,20 +36,26 @@ $(document).ready(function(){
             $('#card-temp-color').removeClass("light-blue amber").addClass("grey");
             $('#card-ctrl-color').removeClass("light-blue amber").addClass("grey");
             $('#navbarjs').removeClass("light-blue amber").addClass("grey");
+
+            $('eta-text').html("");
         } else if (msg.current_state === 'State.HEATING') {
-            $('#current_status').html("Heating to " + msg.desired_temperature + '&#8451;');
+            $('#current_status').html("Heating to " + msg.desired_temperature + '&#8457;');
 
             $('#background').removeClass("light-blue grey").addClass("amber");
             $('#card-temp-color').removeClass("light-blue grey").addClass("amber");
             $('#card-ctrl-color').removeClass("light-blue grey").addClass("amber");
             $('#navbarjs').removeClass("light-blue grey").addClass("amber");
+
+            $('eta-text').html("ETA to temperature: " + msg.time_to_temp + " minutes");
         } else if (msg.current_state === 'State.COOLING') {
-            $('#current_status').html("Cooling to " + msg.desired_temperature + '&#8451;');
+            $('#current_status').html("Cooling to " + msg.desired_temperature + '&#8457;');
 
             $('#background').removeClass("amber grey").addClass("light-blue");
             $('#card-temp-color').removeClass("amber grey").addClass("light-blue");
             $('#card-ctrl-color').removeClass("amber grey").addClass("light-blue");
             $('#navbarjs').removeClass("amber grey").addClass("light-blue");
+
+            $('eta-text').html("ETA to temperature: " + msg.time_to_temp + " minutes");
         } else if (msg.current_state === 'State.FAN_ONLY') {
             $('#current_status').html("Fan only mode");
 
@@ -57,9 +63,13 @@ $(document).ready(function(){
             $('#card-temp-color').removeClass("light-blue amber").addClass("blue-grey");
             $('#card-ctrl-color').removeClass("light-blue amber").addClass("blue-grey");
             $('#navbarjs').removeClass("light-blue amber").addClass("blue-grey");
+
+            $('eta-text').html("");
+        } else if (msg.current_state === 'State.SHUTDOWN') {
+            $('eta-text').html("System shutting down");
         }
 
-        $('#curr_temp').html(msg.current_temperature + '&#8451;');
+        $('#curr_temp').html(msg.current_temperature + '&#8457;');
     });
 
     //TODO: REMOVE
