@@ -17,7 +17,7 @@ import sys
 import threading
 from enum import IntEnum
 
-import pdb
+import logging
 
 class State(IntEnum):
     OFF = 0
@@ -120,6 +120,8 @@ lock = threading.Lock()
 
 app = Flask(__name__)
 socketio = SocketIO(app)
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 # Just turn on the fans
 def enable_fans_only(fan_speed_high=False):
@@ -314,26 +316,26 @@ def main():
 
         if system.enabled:
             if (diff > 4.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.COOL):
-                print("Enable cooling: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
+                print("Enable cooling: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
                 socketio.emit('stateChange',
                         {'state': 'cooling', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
                 threading.Thread(target=enable_cooling).start()
 
             if (diff < -4.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.HEAT):
-                print("Enable Heating: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
+                print("Enable Heating: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
                 socketio.emit('stateChange',
                         {'state': 'heating', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
                 threading.Thread(target=enable_heating).start()
 
             if system.current_state == State.COOLING:
                 if curr_temp < system.desired_temperature or abs(diff) < 0.5:
-                    print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
+                    print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
                     socketio.emit('stateChange',
                             {'state': 'off', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
                     threading.Thread(target=disable_cooling).start()
             elif system.current_state == State.HEATING:
                 if curr_temp > system.desired_temperature or abs(diff) < 0.5:
-                    print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, ideal_temp))
+                    print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
                     socketio.emit('stateChange',
                             {'state': 'off', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
                     threading.Thread(target=disable_heating).start()
@@ -381,8 +383,7 @@ def set_temperature(temp):
     print(temp)
     lock.acquire()
     system.desired_temperature = int(temp)
-    lock.release()
-    print(system)
+     lock.release()
 
 @socketio.on('connect')
 def on_connect():
