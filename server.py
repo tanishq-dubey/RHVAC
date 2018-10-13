@@ -328,14 +328,14 @@ def main():
         system.current_temperature = curr_temp
         diff = round(curr_temp - system.desired_temperature, 2)
 
-        time = int(math.ceil(diff/rate))
+        time_to_temp = int(math.ceil(diff/rate))
 
         msg = {'current_temperature': round(curr_temp, 1),
           'enabled': system.enabled,
           'desired_mode': str(system.desired_mode),
           'current_state': str(system.current_state),
           'desired_temperature': round(system.desired_temperature, 1),
-          'time_to_temp': time}
+          'time_to_temp': time_to_temp}
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
         socketio.emit('statusHeartbeat', msg)
 
