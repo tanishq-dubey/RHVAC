@@ -37,6 +37,10 @@ $(document).ready(function(){
 
     });
 
+    socket.on('test', function() {
+        console.log("test");
+    });
+
     socket.on('connected', function(msg){
         console.log("Connected")
         if (msg.enabled === true){

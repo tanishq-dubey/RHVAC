@@ -312,6 +312,7 @@ def main():
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
         time.sleep(2)
         socketio.emit('statusHeartbeat', msg)
+        socketio.emit('test', 'test');
 
         print("==============")
         print(id(system))
