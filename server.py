@@ -383,7 +383,7 @@ def set_temperature(temp):
     print(temp)
     lock.acquire()
     system.desired_temperature = int(temp)
-     lock.release()
+    lock.release()
 
 @socketio.on('connect')
 def on_connect():
