@@ -305,13 +305,9 @@ def main():
         curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
         system.current_temperature = curr_temp
         diff = round(curr_temp - system.desired_temperature, 2)
-
+        msg = {'enabled': system.enabled, 'desired_mode': system.desired_mode, 'current_state': system.current_state, 'desired_temperature': round(system.desired_temperature, 1)}
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
-        socketio.emit('statusHeartbeat',
-        {'enabled': system.enabled,
-         'desired_mode': system.desired_mode,
-         'current_state': system.current_state,
-         'desired_temperature': round(system.desired_temperature, 1)})
+        socketio.emit('statusHeartbeat', msg)
 
         print("==============")
         print(id(system))
