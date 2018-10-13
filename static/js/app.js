@@ -22,7 +22,7 @@ $(document).ready(function(){
             socket.emit('enable_system', {data: 'disabled'});
         } else {
             socket.emit('disable_system', {data: 'enabled'});
-        }      
+        }
     });
 
     $('#desired-temp').change( function() {

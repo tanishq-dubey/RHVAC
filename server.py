@@ -67,7 +67,7 @@ class System:
     temps = CircularBuffer(60)
     humid = CircularBuffer(60)
 
-    def __init(self):
+    def __init__(self):
         self.enabled = False
         self.current_state = State.OFF
         self.desired_mode = Mode.AUTO
@@ -78,6 +78,11 @@ class System:
 
         self.temps = CircularBuffer(60)
         self.humid = CircularBuffer(60)
+
+    def __str__(self):
+        str = str(self.enabled) + "\n\t" +
+            str(self.current_state) + "\t" + str(self.desired_mode) + "\t" + str(self.fan_mode) + "\n\t" +
+            str(self.current_temperature) + "\t" + str(self.instant_temperature) + "\t" + str(self.desired_temperature)
 
 
 # Relay pins (not GPIO pins)
@@ -270,6 +275,7 @@ def main():
 
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
         print("Current status: %f, %f=>%f\tLast read val: %f" % (diff, curr_temp, system.desired_temperature, system.instant_temperature))
+        print(system)
 
         if system.enabled:
             if (diff > 4.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.COOL):
@@ -326,7 +332,9 @@ def enable_system(msg):
 @socketio.on('set_temperature')
 def set_temperature(temp):
     global system
+    print(temp)
     system.desired_temperature = int(temp)
+    print(system)
 
 @socketio.on('connect')
 def on_connect():
