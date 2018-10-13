@@ -323,7 +323,10 @@ def main():
         curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
         current_time = int(round(time.time() * 1000))
 
-        rate = (curr_temp - previous_temp)/((current_time - previous_time)/1000.0)
+        time_diff = ((current_time - previous_time)/1000.0)
+        if time_diff == 0:
+            time_diff = 1
+        rate = (curr_temp - previous_temp)/time_diff
 
         system.current_temperature = curr_temp
         diff = round(curr_temp - system.desired_temperature, 2)
