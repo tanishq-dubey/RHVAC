@@ -114,7 +114,7 @@ serial = None
 device = None
 
 system = System()
-lock = Lock()
+lock = threading.Lock()
 
 app = Flask(__name__)
 socketio = SocketIO(app)
