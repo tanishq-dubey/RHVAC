@@ -81,8 +81,8 @@ class System:
 
     def __str__(self):
         str = str(self.enabled) + "\n\t" +
-            str(self.current_state) + "\t" + str(self.desired_mode) + "\t" + str(self.fan_mode) + "\n\t" +
-            str(self.current_temperature) + "\t" + str(self.instant_temperature) + "\t" + str(self.desired_temperature)
+          str(self.current_state) + "\t" + str(self.desired_mode) + "\t" + str(self.fan_mode) + "\n\t" +
+          str(self.current_temperature) + "\t" + str(self.instant_temperature) + "\t" + str(self.desired_temperature)
 
 
 # Relay pins (not GPIO pins)
