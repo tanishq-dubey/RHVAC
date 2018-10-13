@@ -9,27 +9,31 @@ $(document).ready(function(){
     });
 
     socket.on('statusHeartbeat', function(msg) {
-        console.log("Got status heartbeat" + msg);
+        console.log("Got status heartbeat");
+        console.log("Enabled: " + msg.enabled);
         if (msg.enabled === true){
             $("#enabled").prop('checked', true);
         } else {
             $("#enabled").prop('checked', false);
         }
-        if (msg.desired_mode === 0) {
-            $('input[name="mode_group"]:checked').val(0);
-        } else if (msg.desired_mode === 1) {
-            $('input[name="mode_group"]:checked').val(1);
-        } else if (msg.desired_mode === 2) {
-            $('input[name="mode_group"]:checked').val(2);
+
+        console.log("Mode: " + msg.desired_mode);
+        if (msg.desired_mode === 'Mode.COOL') {
+            $("input[name=mode_group][value=0]").prop('checked', true);
+        } else if (msg.desired_mode === 'Mode.HEAT') {
+            $("input[name=mode_group][value=1]").prop('checked', true);
+        } else if (msg.desired_mode === 'Mode.AUTO') {
+            $("input[name=mode_group][value=2]").prop('checked', true);
         } else {
-            $('input[name="mode_group"]:checked').val(3);
+            $("input[name=mode_group][value=3]").prop('checked', true);
         }
 
-        if (msg.current_state === 0) {
+        console.log("State: " + msg.current_state);
+        if (msg.current_state === 'State.OFF') {
             $('#current_status').html("System Off");
-        } else if (msg.current_state === 1) {
+        } else if (msg.current_state === 'State.HEATING') {
             $('#current_status').html("Heating to " + msg.desired_temperature);
-        } else if (msg.current_state === 2) {
+        } else if (msg.current_state === 'State.COOLING') {
             $('#current_status').html("Cooling to " + msg.desired_temperature);
         } else {
             $('#current_status').html("Fan only mode");

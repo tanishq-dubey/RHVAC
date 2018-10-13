@@ -310,10 +310,7 @@ def main():
         diff = round(curr_temp - system.desired_temperature, 2)
         msg = {'enabled': system.enabled, 'desired_mode': str(system.desired_mode), 'current_state': str(system.current_state), 'desired_temperature': round(system.desired_temperature, 1)}
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
-        time.sleep(2)
         socketio.emit('statusHeartbeat', msg)
-        print(msg)
-        socketio.emit('test', {'enabled': system.enabled});
 
         print("==============")
         print(id(system))
@@ -348,7 +345,7 @@ def main():
                     threading.Thread(target=disable_heating).start()
         lock.release()
 
-        time.sleep(3)
+        time.sleep(4)
 
 @app.route('/')
 def index():
