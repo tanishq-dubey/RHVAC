@@ -23,7 +23,7 @@
         <div class="col s12 m6 offset-m3">
           <div class="card grey lighten-2 z-depth-2 hoverable" id="card-temp-color">
             <div class="card-content activator white-text">
-              <span class="card-title activator black-text center">Cooling to 70°</span>
+              <span class="card-title activator black-text center" id="current_status">Loading status...</span>
               <h1 class="center black-text activator" id="curr_temp">-.-°</h1>
               <br>
               <p class="center black-text activator"><span>asdf</span></p>
@@ -61,20 +61,20 @@
                 <h6>Mode</h6>
                 <form action="#" class="center">
                   <label>
-                    <input name="group1" type="radio"/>
+                    <input name="mode_group" type="radio" value="0"/>
                     <span>Cool</span>
                   </label>
 
                   <label>
-                    <input name="group1" type="radio"/>
+                    <input name="mode_group" type="radio" value="1"/>
                     <span>Heat</span>
                   </label>
                   <label>
-                    <input name="group1" type="radio"/>
+                    <input name="mode_group" type="radio" value="2"/>
                     <span>Auto</span>
                   </label>
                   <label>
-                    <input name="group1" type="radio"/>
+                    <input name="mode_group" type="radio" value="3"/>
                     <span>Fan Only</span>
                   </label>
                 </form>
@@ -82,12 +82,12 @@
                 <h6>Fan Speed</h6>
                 <form action="#" class="center">
                   <label>
-                    <input name="group2" type="radio"/>
+                    <input name="speed_group" type="radio" value="0"/>
                     <span>Low</span>
                   </label>
 
                   <label>
-                    <input name="group2" type="radio"/>
+                    <input name="speed_group" type="radio" value="1"/>
                     <span>High</span>
                   </label>
                 </form>

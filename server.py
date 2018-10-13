@@ -307,6 +307,11 @@ def main():
         diff = round(curr_temp - system.desired_temperature, 2)
 
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
+        socketio.emit('statusHeartbeat',
+        {'enabled': system.enabled,
+         'desired_mode': system.desired_mode,
+         'current_state': system.current_state,
+         'desired_temperature': round(system.desired_temperature, 1)})
 
         print("==============")
         print(id(system))
