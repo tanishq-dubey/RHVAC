@@ -306,9 +306,11 @@ def main():
 
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
 
-        pdb.set_trace()
+        print("==============")
+        print(id(system))
         print("Current status: %f, %f=>%f\tLast read val: %f" % (diff, curr_temp, system.desired_temperature, system.instant_temperature))
         print(system)
+        print("==============")
 
         if system.enabled:
             if (diff > 4.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.COOL):
