@@ -29,6 +29,7 @@ $(document).ready(function(){
         }
 
         console.log("State: " + msg.current_state);
+        console.log("ETA: " + msg.time_to_temp);
         if (msg.current_state === 'State.OFF') {
             $('#current_status').html("System Off");
 
