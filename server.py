@@ -327,7 +327,8 @@ def main():
         if time_diff == 0:
             time_diff = 1
         rate = (curr_temp - previous_temp)/time_diff
-
+        if rate == 0:
+            rate = 1
         system.current_temperature = curr_temp
         diff = round(curr_temp - system.desired_temperature, 2)
 
