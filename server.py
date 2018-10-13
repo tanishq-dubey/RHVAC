@@ -17,6 +17,8 @@ import sys
 import threading
 from enum import IntEnum
 
+import pdb
+
 class State(IntEnum):
     OFF = 0
     HEATING = 1
@@ -303,6 +305,8 @@ def main():
         diff = round(curr_temp - system.desired_temperature, 2)
 
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
+
+        pdb.set_trace()
         print("Current status: %f, %f=>%f\tLast read val: %f" % (diff, curr_temp, system.desired_temperature, system.instant_temperature))
         print(system)
 
@@ -389,4 +393,4 @@ def on_connect():
 
 if __name__ == "__main__":
     threading.Thread(target=main).start()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
