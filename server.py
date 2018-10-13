@@ -15,6 +15,7 @@ import time
 import signal
 import sys
 import threading
+import math
 from enum import IntEnum
 
 import logging
@@ -27,6 +28,7 @@ class State(IntEnum):
     HEATING = 1
     COOLING = 2
     FAN_ONLY = 3
+    SHUTDOWN = 4
 
 class Mode(IntEnum):
     COOL = 0
@@ -175,6 +177,10 @@ def disable_cooling(fan_speed_high=False):
     global system
     global lock
 
+    lock.acquire()
+    system.current_state = State.SHUTDOWN
+    lock.release()
+
     # Stop cooling
     GPIO.output(cooling_relay, True)
     GPIO.output(reverse_relay, True)
@@ -219,6 +225,11 @@ def enable_heating(fan_speed_high=False):
 def disable_heating(fan_speed_high=False):
     global system
     global lock
+
+    lock.acquire()
+    system.current_state = State.SHUTDOWN
+    lock.release()
+
     # Stop Heating
     GPIO.output(heating_relay, True)
 
@@ -300,15 +311,31 @@ def main():
     init_display()
 
     threading.Thread(target=measure_temp_threaded).start()
+    curr_temp = 75
+    current_time = int(round(time.time() * 1000))
 
     while True:
         lock.acquire()
         temps = system.temps.read_all()
 
+        previous_time = current_time
+        previous_temp = curr_temp
         curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
+        current_time = int(round(time.time() * 1000))
+
+        rate = (curr_temp - previous_temp)/((current_time - previous_time)/1000.0)
+
         system.current_temperature = curr_temp
         diff = round(curr_temp - system.desired_temperature, 2)
-        msg = {'enabled': system.enabled, 'desired_mode': str(system.desired_mode), 'current_state': str(system.current_state), 'desired_temperature': round(system.desired_temperature, 1)}
+
+        time = int(math.ceil(diff/rate))
+
+        msg = {'current_temperature': round(curr_temp, 1),
+          'enabled': system.enabled,
+          'desired_mode': str(system.desired_mode),
+          'current_state': str(system.current_state),
+          'desired_temperature': round(system.desired_temperature, 1),
+          'time_to_temp': time}
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
         socketio.emit('statusHeartbeat', msg)
 
@@ -319,30 +346,18 @@ def main():
         print("==============")
 
         if system.enabled:
-            if (diff > 4.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.COOL):
+            if (diff > 3.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.COOL):
                 print("Enable cooling: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
-                socketio.emit('stateChange',
-                        {'state': 'cooling', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
                 threading.Thread(target=enable_cooling).start()
-
-            if (diff < -4.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.HEAT):
+            elif (diff < -3.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.HEAT):
                 print("Enable Heating: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
-                socketio.emit('stateChange',
-                        {'state': 'heating', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
                 threading.Thread(target=enable_heating).start()
-
-            if system.current_state == State.COOLING:
-                if curr_temp < system.desired_temperature or abs(diff) < 0.5:
-                    print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
-                    socketio.emit('stateChange',
-                            {'state': 'off', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
-                    threading.Thread(target=disable_cooling).start()
-            elif system.current_state == State.HEATING:
-                if curr_temp > system.desired_temperature or abs(diff) < 0.5:
-                    print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
-                    socketio.emit('stateChange',
-                            {'state': 'off', 'd_temp': system.desired_temperature, 'temp': system.current_temperature})
-                    threading.Thread(target=disable_heating).start()
+            elif (system.current_state == State.COOLING) and ((curr_temp < system.desired_temperature) or abs(diff) < 0.5):
+                print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
+                threading.Thread(target=disable_cooling).start()
+            elif (system.current_state == State.HEATING) and ((curr_temp > system.desired_temperature) or abs(diff) < 0.5):
+                print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
+                threading.Thread(target=disable_heating).start()
         lock.release()
 
         time.sleep(4)
@@ -406,15 +421,6 @@ def set_temperature(mode):
     else:
         system.desired_mode = Mode.FAN_ONLY
     lock.release()
-
-@socketio.on('connect')
-def on_connect():
-    global system
-    socketio.emit('connected',
-        {'enabled': system.enabled,
-         'desired_mode': system.desired_mode,
-         'current_state': system.current_state,
-         'desired_temperature': system.desired_temperature})
 
 if __name__ == "__main__":
     threading.Thread(target=main).start()

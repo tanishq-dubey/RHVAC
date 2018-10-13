@@ -31,36 +31,43 @@ $(document).ready(function(){
         console.log("State: " + msg.current_state);
         if (msg.current_state === 'State.OFF') {
             $('#current_status').html("System Off");
+
             $('#background').removeClass("light-blue amber").addClass("grey");
             $('#card-temp-color').removeClass("light-blue amber").addClass("grey");
             $('#card-ctrl-color').removeClass("light-blue amber").addClass("grey");
             $('#navbarjs').removeClass("light-blue amber").addClass("grey");
         } else if (msg.current_state === 'State.HEATING') {
-            $('#current_status').html("Heating to " + msg.desired_temperature);
+            $('#current_status').html("Heating to " + msg.desired_temperature + '&#8451;');
+
             $('#background').removeClass("light-blue grey").addClass("amber");
             $('#card-temp-color').removeClass("light-blue grey").addClass("amber");
             $('#card-ctrl-color').removeClass("light-blue grey").addClass("amber");
             $('#navbarjs').removeClass("light-blue grey").addClass("amber");
         } else if (msg.current_state === 'State.COOLING') {
-            $('#current_status').html("Cooling to " + msg.desired_temperature);
+            $('#current_status').html("Cooling to " + msg.desired_temperature + '&#8451;');
+
             $('#background').removeClass("amber grey").addClass("light-blue");
             $('#card-temp-color').removeClass("amber grey").addClass("light-blue");
             $('#card-ctrl-color').removeClass("amber grey").addClass("light-blue");
             $('#navbarjs').removeClass("amber grey").addClass("light-blue");
-        } else {
+        } else if (msg.current_state === 'State.FAN_ONLY') {
             $('#current_status').html("Fan only mode");
-            $('#background').removeClass("light-blue amber").addClass("grey");
-            $('#card-temp-color').removeClass("light-blue amber").addClass("grey");
-            $('#card-ctrl-color').removeClass("light-blue amber").addClass("grey");
-            $('#navbarjs').removeClass("light-blue amber").addClass("grey");
+
+            $('#background').removeClass("light-blue amber").addClass("blue-grey");
+            $('#card-temp-color').removeClass("light-blue amber").addClass("blue-grey");
+            $('#card-ctrl-color').removeClass("light-blue amber").addClass("blue-grey");
+            $('#navbarjs').removeClass("light-blue amber").addClass("blue-grey");
         }
 
+        $('#curr_temp').html(msg.current_temperature + '&#8451;');
     });
 
+    //TODO: REMOVE
     socket.on('test', function() {
         console.log("test");
     });
 
+    //TODO: REMOVE
     socket.on('connected', function(msg){
         console.log("Connected")
         if (msg.enabled === true){
