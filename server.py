@@ -19,6 +19,9 @@ from enum import IntEnum
 
 import logging
 
+import eventlet
+eventlet.monkey_patch()
+
 class State(IntEnum):
     OFF = 0
     HEATING = 1
