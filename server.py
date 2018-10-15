@@ -80,7 +80,7 @@ class CircularBuffer:
 class System:
     enabled = False
 
-    system_state = State.OFF
+    system_state = State.IDLE
     system_mode = Mode.AUTO
     fan_mode = FanSpeed.LOW
     system_state_desired = StateDesired.DISABLED
