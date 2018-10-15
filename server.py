@@ -406,7 +406,7 @@ def main():
             pass
         lock.release()
 
-        time.sleep(4)
+        time.sleep(1)
 
 @app.route('/')
 def index():
