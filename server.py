@@ -374,9 +374,11 @@ def main():
                 system.system_state = State.DISABLED
             elif (temp_diff >= 3.0) and (system.system_mode == Mode.COOL or system.system_mode == Mode.AUTO):
                 # Start Cooling
+                system.system_state = state.TRANSITION
                 threading.Thread(target=enable_cooling).start()
             elif (temp_diff <= -3.0) and (system.system_mode == Mode.HEAT or system.system_mode == Mode.AUTO):
                 # Start Heating
+                system.system_state = state.TRANSITION
                 threading.Thread(target=enable_heating).start()
         elif system.system_state == State.HEATING:
             # Stay in heating until target temp is met OR system is requested for shutdown
