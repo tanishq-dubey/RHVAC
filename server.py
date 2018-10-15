@@ -297,10 +297,11 @@ def init_relays():
         GPIO.setup(pin, GPIO.OUT, initial=GPIO.HIGH)
 
 def init_display():
+    global device
     serial = spi(port=0, device=0, gpio=noop())
     device = max7219(serial, cascaded=4, block_orientation=-90, rotate=0)
     with canvas(device) as draw:
-        text(draw,(0,0), "Hi!", fill="white", font=proportional(SINCLAIR_FONT))
+        text(draw,(0,0), "Starting...", fill="white", font=proportional(SINCLAIR_FONT))
     print("Display Inited..")
 
 def signal_handler(sig, frame):
@@ -314,6 +315,7 @@ def main():
     global system
     global socketio
     global lock
+    global device
 
     time.sleep(3)
 
@@ -342,14 +344,16 @@ def main():
 
         time_diff = ((current_time - previous_time)/1000.0)
         if time_diff == 0:
-            time_diff = 1/1000.0
+            time_diff = 2.25
         rate = (curr_temp - previous_temp)/time_diff
+        print(time_diff)
+        print(rate)
         if rate == 0:
             rate = 1/10.0
         system.current_temp = curr_temp
         temp_diff = round(curr_temp - system.desired_temp, 2)
 
-        time_to_temp = int(math.ceil(abs(temp_diff/rate)))/60
+        time_to_temp = int(math.ceil(abs((curr_temp - system.desired_temp)/rate)))/60
 
         enabled = system.system_state != State.DISABLED
         msg = {'current_temperature': round(curr_temp, 1),
@@ -361,6 +365,7 @@ def main():
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
         socketio.emit('statusHeartbeat', msg)
 
+
         print("==============")
         print("Current status: %f, %f=>%f\tLast read val: %f" % (temp_diff, curr_temp, system.desired_temp, system.instant_temp))
         print(system)
@@ -370,6 +375,8 @@ def main():
             if system.system_state_desired == StateDesired.ACTIVE:
                 system.system_state = State.IDLE
         elif system.system_state == State.IDLE:
+            with canvas(device) as draw:
+                text(draw,(0,0), " " + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(SINCLAIR_FONT))
             if system.system_state_desired == StateDesired.DISABLED:
                 system.system_state = State.DISABLED
             elif (temp_diff >= 3.0) and (system.system_mode == Mode.COOL or system.system_mode == Mode.AUTO):
@@ -381,6 +388,8 @@ def main():
                 system.system_state = State.TRANSITION
                 threading.Thread(target=enable_heating).start()
         elif system.system_state == State.HEATING:
+            with canvas(device) as draw:
+                text(draw,(0,0), chr(24) + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(SINCLAIR_FONT))
             # Stay in heating until target temp is met OR system is requested for shutdown
             if (abs(temp_diff) < 0.25) or (system.current_temp > system.desired_temp):
                 # Start Heating Shutdown because we reached temp
@@ -391,6 +400,8 @@ def main():
                 system.system_state = State.TRANSITION
                 threading.Thread(target=disable_heating).start()
         elif system.system_state == State.COOLING:
+            with canvas(device) as draw:
+                text(draw,(0,0), chr(25) + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(SINCLAIR_FONT))
             # Stay in cooling until target temp is met OR system is requested for shutdown
             if (abs(temp_diff) < 0.25) or (system.current_temp < system.desired_temp):
                 # Start Cooling Shutdown because we reached temp
@@ -403,6 +414,8 @@ def main():
         elif system.system_state == State.SHUTDOWN:
             system.system_state = State.IDLE
         elif system.system_state == State.TRANSITION:
+            with canvas(device) as draw:
+                text(draw,(0,0), " " + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(SINCLAIR_FONT))
             pass
         lock.release()
 
