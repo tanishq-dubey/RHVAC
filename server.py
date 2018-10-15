@@ -345,11 +345,11 @@ def main():
             time_diff = 1/1000.0
         rate = (curr_temp - previous_temp)/time_diff
         if rate == 0:
-            rate = 1
+            rate = 1/10.0
         system.current_temp = curr_temp
         temp_diff = round(curr_temp - system.desired_temp, 2)
 
-        time_to_temp = int(math.ceil(abs(temp_diff/rate)))
+        time_to_temp = int(math.ceil(abs(temp_diff/rate)))/60
 
         enabled = system.system_state != State.DISABLED
         msg = {'current_temperature': round(curr_temp, 1),
