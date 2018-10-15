@@ -23,12 +23,18 @@ import logging
 import eventlet
 eventlet.monkey_patch()
 
+
 class State(IntEnum):
-    OFF = 0
+    DISABLED = -1
+
+    IDLE = 0
     HEATING = 1
     COOLING = 2
-    FAN_ONLY = 3
+    FANS = 3
+
     SHUTDOWN = 4
+    TRANSITION = 5
+
 
 class Mode(IntEnum):
     COOL = 0
@@ -36,9 +42,17 @@ class Mode(IntEnum):
     AUTO = 2
     FAN_ONLY = 3
 
+
 class FanSpeed(IntEnum):
     LOW = 0
     HIGH = 1
+    AUTO = 2
+
+
+class StateDesired(IntEnum):
+    ACTIVE = 0
+    DISABLED = 1
+
 
 class CircularBuffer:
     size = 0
@@ -62,32 +76,40 @@ class CircularBuffer:
     def read_all(self):
         return [x for x in self.data if x]
 
+
 class System:
     enabled = False
-    current_state = State.OFF
-    desired_mode = Mode.AUTO
+
+    system_state = State.OFF
+    system_mode = Mode.AUTO
     fan_mode = FanSpeed.LOW
-    current_temperature = 0.0
-    instant_temperature = 0.0
-    desired_temperature = 75.0
+    system_state_desired = StateDesired.DISABLED
+
+    current_temp = 0.0
+    instant_temp = 0.0
+    desired_temp = 75.0
 
     temps = CircularBuffer(60)
     humid = CircularBuffer(60)
 
+
     def __init__(self):
         self.enabled = False
-        self.current_state = State.OFF
-        self.desired_mode = Mode.AUTO
+
+        self.system_state = State.DISABLED
+        self.system_mode = Mode.AUTO
         self.fan_mode = FanSpeed.LOW
-        self.current_temperature = 0.0
-        self.instant_temperature = 0.0
-        self.desired_temperature = 75.0
+        self.system_state_desired = StateDesired.DISABLED
+
+        self.current_temp = 0.0
+        self.instant_temp = 0.0
+        self.desired_temp = 75.0
 
         self.temps = CircularBuffer(60)
         self.humid = CircularBuffer(60)
 
     def __str__(self):
-        return str(self.enabled) + "\n\t" + str(self.current_state) + "\t" + str(self.desired_mode) + "\t" + str(self.fan_mode) + "\n\t" + str(self.current_temperature) + "\t" + str(self.instant_temperature) + "\t" + str(self.desired_temperature)
+        return str(self.enabled) + "\n\t" + str(self.system_state) + "\t" + str(self.system_mode) + "\t" + str(self.fan_mode) + "\n\t" + str(self.current_temp) + "\t" + str(self.instant_temp) + "\t" + str(self.desired_temp)
 
 
 # Relay pins (not GPIO pins)
@@ -154,9 +176,6 @@ def enable_cooling(fan_speed_high=False):
     global system
     global lock
 
-    lock.acquire()
-    system.current_state = State.COOLING
-    lock.release()
     # Activate the desired fan. ONLY ACTIVATE ONE
     enable_fans_only(fan_speed_high)
 
@@ -166,6 +185,9 @@ def enable_cooling(fan_speed_high=False):
     # Activate cooling
     GPIO.output(reverse_relay, False)
     GPIO.output(cooling_relay, False)
+    lock.acquire()
+    system.system_state = State.COOLING
+    lock.release()
 
 # To stop cooling the room, do the following:
 #   1. De-energize the reversing valve
@@ -177,10 +199,6 @@ def disable_cooling(fan_speed_high=False):
     global system
     global lock
 
-    lock.acquire()
-    system.current_state = State.SHUTDOWN
-    lock.release()
-
     # Stop cooling
     GPIO.output(cooling_relay, True)
     GPIO.output(reverse_relay, True)
@@ -191,7 +209,7 @@ def disable_cooling(fan_speed_high=False):
     # Deactivate the desired fan.
     disable_fans_only(fan_speed_high)
     lock.acquire()
-    system.current_state = State.OFF
+    system.system_state = State.SHUTDOWN
     lock.release()
 
 # To start heating the room, do the following:
@@ -205,9 +223,6 @@ def enable_heating(fan_speed_high=False):
     global system
     global lock
 
-    lock.acquire()
-    system.current_state = State.HEATING
-    lock.release()
     # Activate the desired fan. ONLY ACTIVATE ONE
     enable_fans_only(fan_speed_high)
 
@@ -216,6 +231,9 @@ def enable_heating(fan_speed_high=False):
 
     # Activate heating
     GPIO.output(heating_relay, False)
+    lock.acquire()
+    system.system_state = State.HEATING
+    lock.release()
 
 # To stop heating the room, do the following:
 #   1. De-energize the heating relay
@@ -226,10 +244,6 @@ def disable_heating(fan_speed_high=False):
     global system
     global lock
 
-    lock.acquire()
-    system.current_state = State.SHUTDOWN
-    lock.release()
-
     # Stop Heating
     GPIO.output(heating_relay, True)
 
@@ -239,7 +253,7 @@ def disable_heating(fan_speed_high=False):
     # Deactivate the desired fan.
     disable_fans_only(fan_speed_high)
     lock.acquire()
-    system.current_state = State.OFF
+    system.system_state = State.SHUTDOWN
     lock.release()
 
 def measure_temp_threaded():
@@ -252,7 +266,7 @@ def measure_temp_threaded():
     lock.acquire()
     system.temps.write(temperature)
     system.humid.write(humidity)
-    system.instant_temperature = temperature
+    system.instant_temp = temperature
     lock.release()
 
 
@@ -271,7 +285,7 @@ def measure_temp():
     lock.acquire()
     system.temps.write(temperature)
     system.humid.write(humidity)
-    system.instant_temperature = temperature
+    system.instant_temp = temperature
     lock.release()
 
     time.sleep(3)
@@ -311,11 +325,12 @@ def main():
     init_display()
 
     threading.Thread(target=measure_temp_threaded).start()
-    curr_temp = 75
+    curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
     current_time = int(round(time.time() * 1000))
 
     while True:
         lock.acquire()
+
         temps = system.temps.read_all()
 
         previous_time = current_time
@@ -325,43 +340,65 @@ def main():
 
         time_diff = ((current_time - previous_time)/1000.0)
         if time_diff == 0:
-            time_diff = 1
+            time_diff = 1/1000.0
         rate = (curr_temp - previous_temp)/time_diff
         if rate == 0:
             rate = 1
-        system.current_temperature = curr_temp
-        diff = round(curr_temp - system.desired_temperature, 2)
+        system.current_temp = curr_temp
+        temp_diff = round(curr_temp - system.desired_temp, 2)
 
-        time_to_temp = int(math.ceil(diff/rate))
+        time_to_temp = int(math.ceil(abs(temp_diff/rate)))
 
         msg = {'current_temperature': round(curr_temp, 1),
           'enabled': system.enabled,
-          'desired_mode': str(system.desired_mode),
-          'current_state': str(system.current_state),
-          'desired_temperature': round(system.desired_temperature, 1),
+          'system_mode': str(system.system_mode),
+          'system_state': str(system.system_state),
+          'desired_temperature': round(system.desired_temp, 1),
           'time_to_temp': time_to_temp}
         socketio.emit('tempHeartbeat', {'temp': round(curr_temp, 1)})
         socketio.emit('statusHeartbeat', msg)
 
         print("==============")
-        print(id(system))
-        print("Current status: %f, %f=>%f\tLast read val: %f" % (diff, curr_temp, system.desired_temperature, system.instant_temperature))
+        print("Current status: %f, %f=>%f\tLast read val: %f" % (diff, curr_temp, system.desired_temp, system.instant_temp))
         print(system)
         print("==============")
 
-        if system.enabled:
-            if (diff > 3.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.COOL):
-                print("Enable cooling: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
+        if system.system_state == State.DISABLED:
+            if system.system_state_desired == StateDesired.ACTIVE:
+                system.system_state == State.IDLE
+        elif system.system_state == State.IDLE:
+            if system.system_state_desired == StateDesired.DISABLED:
+                system.system_state = State.DISABLED
+            elif (temp_diff >= 3.0) and (system.system_mode == Mode.COOL or system.system_mode == Mode.AUTO):
+                # Start Cooling
                 threading.Thread(target=enable_cooling).start()
-            elif (diff < -3.0) and (system.current_state == State.OFF) and (system.desired_mode == Mode.AUTO or system.desired_mode == Mode.HEAT):
-                print("Enable Heating: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
+            elif (temp_diff <= -3.0) and (system.system_mode == Mode.HEAT or system.system_mode == Mode.AUTO):
+                # Start Heating
                 threading.Thread(target=enable_heating).start()
-            elif (system.current_state == State.COOLING) and ((curr_temp < system.desired_temperature) or abs(diff) < 0.5):
-                print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
-                threading.Thread(target=disable_cooling).start()
-            elif (system.current_state == State.HEATING) and ((curr_temp > system.desired_temperature) or abs(diff) < 0.5):
-                print("Turning off HVAC: %f, %f=>%f" % (diff, curr_temp, system.desired_temperature))
+        elif system.system_state == State.HEATING:
+            # Stay in heating until target temp is met OR system is requested for shutdown
+            if (abs(temp_diff) < 0.25) or (system.current_temp > system.desired_temp):
+                # Start Heating Shutdown because we reached temp
+                system.system_state = state.TRANSITION
                 threading.Thread(target=disable_heating).start()
+            elif system.system_state_desired == StateDesired.DISABLED:
+                # Start Heating Shutdown because user shutdown
+                system.system_state = state.TRANSITION
+                threading.Thread(target=disable_heating).start()
+        elif system.system_state == State.COOLING:
+            # Stay in cooling until target temp is met OR system is requested for shutdown
+            if (abs(temp_diff) < 0.25) or (system.current_temp < system.desired_temp):
+                # Start Cooling Shutdown because we reached temp
+                system.system_state = state.TRANSITION
+                threading.Thread(target=disable_cooling).start()
+            elif system.system_state_desired == StateDesired.DISABLED:
+                # Start Cooling Shutdown because user shutdown
+                system.system_state = state.TRANSITION
+                threading.Thread(target=disable_cooling).start()
+        elif system.system_state == State.SHUTDOWN:
+            system.system_state = State.IDLE
+        elif system.system_state == State.TRANSITION:
+            pass
         lock.release()
 
         time.sleep(4)
@@ -376,15 +413,7 @@ def disable_system(msg):
     global lock
 
     lock.acquire()
-    if system.enabled:
-        if system.current_state == State.COOLING:
-            threading.Thread(target=disable_cooling).start()
-        elif system.current_state == State.HEATING:
-            threading.Thread(target=disable_heating).start()
-        else:
-            disable_fans_only()
-
-    system.enabled = False
+    system.system_state_desired = StateDesired.DISABLED
     lock.release()
     print("System disabled")
 
@@ -394,7 +423,7 @@ def enable_system(msg):
     global lock
 
     lock.acquire()
-    system.enabled = True
+    system.system_state_desired = StateDesired.ACTIVE
     lock.release()
     print("System enabled")
 
@@ -405,7 +434,7 @@ def set_temperature(temp):
 
     print(temp)
     lock.acquire()
-    system.desired_temperature = int(temp)
+    system.desired_temp = int(temp)
     lock.release()
 
 @socketio.on('set_mode')
@@ -417,13 +446,13 @@ def set_temperature(mode):
     mode = int(mode)
     lock.acquire()
     if mode == 0:
-        system.desired_mode = Mode.COOL
+        system.system_mode = Mode.COOL
     elif mode == 1:
-        system.desired_mode = Mode.HEAT
+        system.system_mode = Mode.HEAT
     elif mode == 2:
-        system.desired_mode = Mode.AUTO
+        system.system_mode = Mode.AUTO
     else:
-        system.desired_mode = Mode.FAN_ONLY
+        system.system_mode = Mode.FAN_ONLY
     lock.release()
 
 if __name__ == "__main__":
