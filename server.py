@@ -324,6 +324,8 @@ def main():
     measure_temp()
     init_display()
 
+    temps = system.temps.read_all()
+
     threading.Thread(target=measure_temp_threaded).start()
     curr_temp = reduce(lambda x, y: x + y, temps) / float(len(temps))
     current_time = int(round(time.time() * 1000))
