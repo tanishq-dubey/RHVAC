@@ -300,8 +300,9 @@ def init_display():
     global device
     serial = spi(port=0, device=0, gpio=noop())
     device = max7219(serial, cascaded=4, block_orientation=-90, rotate=0)
+    device.contrast(1*16)
     with canvas(device) as draw:
-        text(draw,(0,0), "Starting...", fill="white", font=proportional(SINCLAIR_FONT))
+        text(draw,(0,0), "Starting...", fill="white", font=proportional(TINY_FONT))
     print("Display Inited..")
 
 def signal_handler(sig, frame):
@@ -375,10 +376,10 @@ def main():
             if system.system_state_desired == StateDesired.ACTIVE:
                 system.system_state = State.IDLE
             with canvas(device) as draw:
-                text(draw,(0,0), " " + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(SINCLAIR_FONT))
+                text(draw,(0,0), " " + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(TINY_FONT))
         elif system.system_state == State.IDLE:
             with canvas(device) as draw:
-                text(draw,(0,0), " " + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(SINCLAIR_FONT))
+                text(draw,(0,0), " " + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(TINY_FONT))
             if system.system_state_desired == StateDesired.DISABLED:
                 system.system_state = State.DISABLED
             elif (temp_diff >= 3.0) and (system.system_mode == Mode.COOL or system.system_mode == Mode.AUTO):
@@ -391,7 +392,7 @@ def main():
                 threading.Thread(target=enable_heating).start()
         elif system.system_state == State.HEATING:
             with canvas(device) as draw:
-                text(draw,(0,0), chr(24) + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(SINCLAIR_FONT))
+                text(draw,(0,0), chr(24) + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(TINY_FONT))
             # Stay in heating until target temp is met OR system is requested for shutdown
             if (abs(temp_diff) < 0.25) or (system.current_temp > system.desired_temp):
                 # Start Heating Shutdown because we reached temp
@@ -403,7 +404,7 @@ def main():
                 threading.Thread(target=disable_heating).start()
         elif system.system_state == State.COOLING:
             with canvas(device) as draw:
-                text(draw,(0,0), chr(25) + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(SINCLAIR_FONT))
+                text(draw,(0,0), chr(25) + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(TINY_FONT))
             # Stay in cooling until target temp is met OR system is requested for shutdown
             if (abs(temp_diff) < 0.25) or (system.current_temp < system.desired_temp):
                 # Start Cooling Shutdown because we reached temp
