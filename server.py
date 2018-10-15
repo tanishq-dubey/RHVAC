@@ -374,6 +374,8 @@ def main():
         if system.system_state == State.DISABLED:
             if system.system_state_desired == StateDesired.ACTIVE:
                 system.system_state = State.IDLE
+            with canvas(device) as draw:
+                text(draw,(0,0), " " + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(SINCLAIR_FONT))
         elif system.system_state == State.IDLE:
             with canvas(device) as draw:
                 text(draw,(0,0), " " + str(round(curr_temp, 1)) + chr(167), fill="white", font=proportional(SINCLAIR_FONT))
