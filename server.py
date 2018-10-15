@@ -351,8 +351,9 @@ def main():
 
         time_to_temp = int(math.ceil(abs(temp_diff/rate)))
 
+        enabled = system.system_state != State.DISABLED
         msg = {'current_temperature': round(curr_temp, 1),
-          'enabled': system.enabled,
+          'enabled': enabled,
           'system_mode': str(system.system_mode),
           'system_state': str(system.system_state),
           'desired_temperature': round(system.desired_temp, 1),
@@ -361,7 +362,7 @@ def main():
         socketio.emit('statusHeartbeat', msg)
 
         print("==============")
-        print("Current status: %f, %f=>%f\tLast read val: %f" % (diff, curr_temp, system.desired_temp, system.instant_temp))
+        print("Current status: %f, %f=>%f\tLast read val: %f" % (temp_diff, curr_temp, system.desired_temp, system.instant_temp))
         print(system)
         print("==============")
 

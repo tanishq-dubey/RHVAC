@@ -17,20 +17,20 @@ $(document).ready(function(){
             $("#enabled").prop('checked', false);
         }
 
-        console.log("Mode: " + msg.desired_mode);
-        if (msg.desired_mode === 'Mode.COOL') {
+        console.log("Mode: " + msg.system_mode);
+        if (msg.system_mode === 'Mode.COOL') {
             $("input[name=mode_group][value=0]").prop('checked', true);
-        } else if (msg.desired_mode === 'Mode.HEAT') {
+        } else if (msg.system_mode === 'Mode.HEAT') {
             $("input[name=mode_group][value=1]").prop('checked', true);
-        } else if (msg.desired_mode === 'Mode.AUTO') {
+        } else if (msg.system_mode === 'Mode.AUTO') {
             $("input[name=mode_group][value=2]").prop('checked', true);
         } else {
             $("input[name=mode_group][value=3]").prop('checked', true);
         }
 
-        console.log("State: " + msg.current_state);
+        console.log("State: " + msg.system_state);
         console.log("ETA: " + msg.time_to_temp);
-        if (msg.current_state === 'State.OFF') {
+        if (msg.system_state === 'State.OFF') {
             $('#current_status').html("System Off");
 
             $('#background').removeClass("light-blue amber").addClass("grey");
@@ -39,7 +39,7 @@ $(document).ready(function(){
             $('#navbarjs').removeClass("light-blue amber").addClass("grey");
 
             $('eta-text').html("");
-        } else if (msg.current_state === 'State.HEATING') {
+        } else if (msg.system_state === 'State.HEATING') {
             $('#current_status').html("Heating to " + msg.desired_temperature + '&#8457;');
 
             $('#background').removeClass("light-blue grey").addClass("amber");
@@ -48,7 +48,7 @@ $(document).ready(function(){
             $('#navbarjs').removeClass("light-blue grey").addClass("amber");
 
             $('eta-text').html("ETA to temperature: " + msg.time_to_temp + " minutes");
-        } else if (msg.current_state === 'State.COOLING') {
+        } else if (msg.system_state === 'State.COOLING') {
             $('#current_status').html("Cooling to " + msg.desired_temperature + '&#8457;');
 
             $('#background').removeClass("amber grey").addClass("light-blue");
@@ -57,7 +57,7 @@ $(document).ready(function(){
             $('#navbarjs').removeClass("amber grey").addClass("light-blue");
 
             $('eta-text').html("ETA to temperature: " + msg.time_to_temp + " minutes");
-        } else if (msg.current_state === 'State.FAN_ONLY') {
+        } else if (msg.system_state === 'State.FAN_ONLY') {
             $('#current_status').html("Fan only mode");
 
             $('#background').removeClass("light-blue amber").addClass("blue-grey");
@@ -66,7 +66,7 @@ $(document).ready(function(){
             $('#navbarjs').removeClass("light-blue amber").addClass("blue-grey");
 
             $('eta-text').html("");
-        } else if (msg.current_state === 'State.SHUTDOWN') {
+        } else if (msg.system_state === 'State.SHUTDOWN') {
             $('eta-text').html("System shutting down");
         }
 
