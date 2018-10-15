@@ -368,7 +368,7 @@ def main():
 
         if system.system_state == State.DISABLED:
             if system.system_state_desired == StateDesired.ACTIVE:
-                system.system_state == State.IDLE
+                system.system_state = State.IDLE
         elif system.system_state == State.IDLE:
             if system.system_state_desired == StateDesired.DISABLED:
                 system.system_state = State.DISABLED
