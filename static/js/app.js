@@ -17,6 +17,8 @@ $(document).ready(function(){
             $("#enabled").prop('checked', false);
         }
 
+        document.getElementById("desired-temp").value = msg.desired_temperature;
+
         console.log("Mode: " + msg.system_mode);
         if (msg.system_mode === 'Mode.COOL') {
             $("input[name=mode_group][value=0]").prop('checked', true);
@@ -30,15 +32,15 @@ $(document).ready(function(){
 
         console.log("State: " + msg.system_state);
         console.log("ETA: " + msg.time_to_temp);
-        if (msg.system_state === 'State.OFF') {
-            $('#current_status').html("System Off");
+        if (msg.system_state === 'State.IDLE') {
+            $('#current_status').html("System idle at " + msg.desired_temperature + '&#8457;');
 
             $('#background').removeClass("light-blue amber").addClass("grey");
             $('#card-temp-color').removeClass("light-blue amber").addClass("grey");
             $('#card-ctrl-color').removeClass("light-blue amber").addClass("grey");
             $('#navbarjs').removeClass("light-blue amber").addClass("grey");
 
-            $('eta-text').html("");
+            $('#eta-text').html("");
         } else if (msg.system_state === 'State.HEATING') {
             $('#current_status').html("Heating to " + msg.desired_temperature + '&#8457;');
 
@@ -47,7 +49,7 @@ $(document).ready(function(){
             $('#card-ctrl-color').removeClass("light-blue grey").addClass("amber");
             $('#navbarjs').removeClass("light-blue grey").addClass("amber");
 
-            $('eta-text').html("ETA to temperature: " + msg.time_to_temp + " minutes");
+            $('#eta-text').html("ETA to temperature: " + msg.time_to_temp + " minutes");
         } else if (msg.system_state === 'State.COOLING') {
             $('#current_status').html("Cooling to " + msg.desired_temperature + '&#8457;');
 
@@ -56,7 +58,7 @@ $(document).ready(function(){
             $('#card-ctrl-color').removeClass("amber grey").addClass("light-blue");
             $('#navbarjs').removeClass("amber grey").addClass("light-blue");
 
-            $('eta-text').html("ETA to temperature: " + msg.time_to_temp + " minutes");
+            $('#eta-text').html("ETA to temperature: " + msg.time_to_temp + " minutes");
         } else if (msg.system_state === 'State.FAN_ONLY') {
             $('#current_status').html("Fan only mode");
 
@@ -65,27 +67,21 @@ $(document).ready(function(){
             $('#card-ctrl-color').removeClass("light-blue amber").addClass("blue-grey");
             $('#navbarjs').removeClass("light-blue amber").addClass("blue-grey");
 
-            $('eta-text').html("");
-        } else if (msg.system_state === 'State.SHUTDOWN') {
-            $('eta-text').html("System shutting down");
+            $('#eta-text').html("");
+        } else if (msg.system_state === 'State.TRANSITION') {
+            $('#eta-text').html("System preparing to switch modes");
+        } else if (msg.system_state === 'State.DISABLED') {
+            $('#current_status').html("System Off");
+
+            $('#background').removeClass("light-blue amber").addClass("grey");
+            $('#card-temp-color').removeClass("light-blue amber").addClass("grey");
+            $('#card-ctrl-color').removeClass("light-blue amber").addClass("grey");
+            $('#navbarjs').removeClass("light-blue amber").addClass("grey");
+
+            $('#eta-text').html("");
         }
 
         $('#curr_temp').html(msg.current_temperature + '&#8457;');
-    });
-
-    //TODO: REMOVE
-    socket.on('test', function() {
-        console.log("test");
-    });
-
-    //TODO: REMOVE
-    socket.on('connected', function(msg){
-        console.log("Connected")
-        if (msg.enabled === true){
-            $("#enabled").prop('checked', true);
-        } else {
-            $("#enabled").prop('checked', false);
-        }
     });
 
     $('#enabled').change(function() {
