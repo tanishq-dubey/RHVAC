@@ -62,6 +62,16 @@ $(document).ready(function(){
 	};
 	$.get('http://' + document.domain + ':' + location.port +'/data', function(data, status) {
 		console.log(data);
+		data.map( function(item) {
+			config.data.datasets[0].data.push({
+				x: item.time,
+				y: item.temp
+			});
+			config.data.datasets[1].data.push({
+				x: item.time,
+				y: item.humid
+			});
+		});
 	});
 	window.myLine = new Chart(ctx, config);
 
