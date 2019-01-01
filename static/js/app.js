@@ -62,33 +62,33 @@ $(document).ready(function(){
 	};
 	$.get('http://' + document.domain + ':' + location.port +'/data', function(data, status) {
 		console.log(data);
-		data.map( function(item) {
-			config.data.datasets[0].data.push({
-				x: item.time,
-				y: item.temp
-			});
-			config.data.datasets[1].data.push({
-				x: item.time,
-				y: item.humid
-			});
-		});
+		for(i = 0; i < data.length; i++) {
+				config.data.datasets[0].data.push({
+					x: data[i].time,
+					y: data[i].temp
+				});
+				config.data.datasets[1].data.push({
+					x: data[i].time,
+					y: data[i].humid
+				});
+			}
 	});
 	window.myLine = new Chart(ctx, config);
 	window.myLine.update();
 	
 	setInterval(function() {
-		$.get('http://' + document.domain + ':' + location.port +'/data/' + Date.now(), function(data, status) {
+		$.get('http://' + document.domain + ':' + location.port +'/data/' + Date.now()/1000.0, function(data, status) {
 			console.log(data);
-			data.map( function(item) {
+			for(i = 0; i < data.length; i++) {
 				config.data.datasets[0].data.push({
-					x: item.time,
-					y: item.temp
+					x: data[i].time,
+					y: data[i].temp
 				});
 				config.data.datasets[1].data.push({
-					x: item.time,
-					y: item.humid
+					x: data[i].time,
+					y: data[i].humid
 				});
-			});
+			}
 		});
 		window.myLine.update();
 	}, 5000);

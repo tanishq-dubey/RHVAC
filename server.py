@@ -473,7 +473,7 @@ def dataFromTime(time):
     lock.acquire()
     d = pd.DataFrame.from_dict(system.chartData)
     lock.release()
-    df = d[d.time > time].to_json(orient='records')
+    df = d[d.time > int(time)].to_json(orient='records')
     response = app.response_class(
         response=df,
         status=200,
