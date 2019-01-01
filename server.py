@@ -11,6 +11,8 @@ from luma.core.virtual import viewport
 from luma.core.legacy import text, show_message
 from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_FONT, LCD_FONT
 
+import pandas as pd
+
 import time
 import signal
 import sys
@@ -91,6 +93,8 @@ class System:
 
     temps = CircularBuffer(60)
     humid = CircularBuffer(60)
+    
+    chartData = {"time":[], "temp":[], "humid":[]}
 
 
     def __init__(self):
@@ -107,10 +111,20 @@ class System:
 
         self.temps = CircularBuffer(60)
         self.humid = CircularBuffer(60)
+        
+        self.chartData = {"time":[], "temp":[], "humid":[]}
 
     def __str__(self):
         return str(self.enabled) + "\n\t" + str(self.system_state) + "\t" + str(self.system_mode) + "\t" + str(self.fan_mode) + "\n\t" + str(self.current_temp) + "\t" + str(self.instant_temp) + "\t" + str(self.desired_temp)
-
+        
+        
+    def PruneChart(self):
+        if len(self.chartData["time"]) > 60000:
+            self.chartData["time"].pop(0)
+        if len(self.chartData["temp"]) > 60000:
+            self.chartData["temp"].pop(0)
+        if len(self.chartData["humid"]) > 60000:
+            self.chartData["humid"].pop(0)
 
 # Relay pins (not GPIO pins)
 #              1   2   3   4   5   6   7   8
@@ -180,7 +194,7 @@ def enable_cooling(fan_speed_high=False):
     enable_fans_only(fan_speed_high)
 
     # Wait for fans
-    time.sleep(30)
+    time.sleep(10)
 
     # Activate cooling
     GPIO.output(reverse_relay, False)
@@ -205,7 +219,7 @@ def disable_cooling(fan_speed_high=False):
 
     # We need to cool down the compressor and pump
     # so run the fans for around a minute
-    time.sleep(90)
+    time.sleep(45)
     # Deactivate the desired fan.
     disable_fans_only(fan_speed_high)
     lock.acquire()
@@ -227,7 +241,7 @@ def enable_heating(fan_speed_high=False):
     enable_fans_only(fan_speed_high)
 
     # Wait for fans
-    time.sleep(30)
+    time.sleep(10)
 
     # Activate heating
     GPIO.output(heating_relay, False)
@@ -249,7 +263,7 @@ def disable_heating(fan_speed_high=False):
 
     # We need to cool down the compressor and pump
     # so run the fans for around a minute
-    time.sleep(60)
+    time.sleep(45)
     # Deactivate the desired fan.
     disable_fans_only(fan_speed_high)
     lock.acquire()
@@ -267,6 +281,10 @@ def measure_temp_threaded():
     system.temps.write(temperature)
     system.humid.write(humidity)
     system.instant_temp = temperature
+    system.chartData["time"].append(time.time())
+    system.chartData["temp"].append(temperature)
+    system.chartData["humid"].append(humidity)
+    system.PruneChart()
     lock.release()
 
 
@@ -286,6 +304,10 @@ def measure_temp():
     system.temps.write(temperature)
     system.humid.write(humidity)
     system.instant_temp = temperature
+    system.chartData["time"].append(time.time())
+    system.chartData["temp"].append(temperature)
+    system.chartData["humid"].append(humidity)
+    system.PruneChart()
     lock.release()
 
     time.sleep(3)
@@ -427,6 +449,38 @@ def main():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/data')
+def data():
+    global system
+    global lock
+    
+    lock.acquire()
+    d = pd.DataFrame.from_dict(system.chartData).to_json(orient='records')
+    lock.release()
+    response = app.response_class(
+        response=d,
+        status=200,
+        mimetype='application/json'
+    )
+    return response
+
+@app.route('/data/<time>')
+def dataFromTime(time):
+    global system
+    global lock
+
+    lock.acquire()
+    d = pd.DataFrame.from_dict(system.chartData)
+    lock.release()
+    df = d[d.time > time].to_json(orient='records')
+    response = app.response_class(
+        response=df,
+        status=200,
+        mimetype='application/json'
+    )
+    return response
+
 
 @socketio.on('disable_system')
 def disable_system(msg):

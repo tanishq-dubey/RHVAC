@@ -2,6 +2,69 @@ $(document).ready(function(){
     //connect to the socket server.
     var socket = io.connect('http://' + document.domain + ':' + location.port);
 
+	var ctx = document.getElementById("myChart");
+	var color = Chart.helpers.color;
+	var config = {
+		type: 'line',
+		data: {
+			datasets: [{
+				label: 'Temperature',
+				borderColor: window.chartColors.red,
+				backgroundColor: window.chartColors.red,
+				fill: false,
+				data: [],
+				yAxisID: 'temp-axis',
+			}, {
+				label: 'Humidity',
+				borderColor: window.chartColors.blue,
+				backgroundColor: window.chartColors.blue,
+				fill: false,
+				data: [],
+				yAxisID: 'humid-axis'
+			}]
+		},
+		options: {
+			responsive: true,
+			title: {
+				display: true,
+				text: 'Temperature and Humidity'
+			},
+			scales: {
+				xAxes: [{
+					type: 'time',
+					display: true,
+					scaleLabel: {
+						display: true,
+						labelString: 'Time'
+					},
+					ticks: {
+						major: {
+							fontStyle: 'bold',
+							fontColor: '#FF0000'
+						}
+					}
+				}],
+				yAxes: [{
+					type: 'linear',
+					display: true,
+					position: 'left',
+					labelString: 'Temperature',
+					id: 'temp-axis',
+				}, {
+					type: 'linear',
+					display: true,
+					position: 'right',
+					labelString: 'Humidity',
+					id: 'humid-axis',
+				}],
+			}
+		}
+	};
+	$.get('http://' + document.domain + ':' + location.port +'/data', function(data, status) {
+		console.log(data);
+	});
+	window.myLine = new Chart(ctx, config);
+
     //receive details from server
     socket.on('tempHeartbeat', function(msg) {
         console.log("Received temp" + msg.temp);
