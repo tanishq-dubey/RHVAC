@@ -9,15 +9,15 @@ $(document).ready(function(){
 		data: {
 			datasets: [{
 				label: 'Temperature',
-				borderColor: window.chartColors.red,
-				backgroundColor: window.chartColors.red,
+				borderColor: '#4183d7',
+				backgroundColor: '#4183d7',
 				fill: false,
 				data: [],
 				yAxisID: 'temp-axis',
 			}, {
 				label: 'Humidity',
-				borderColor: window.chartColors.blue,
-				backgroundColor: window.chartColors.blue,
+				borderColor: '#d64541',
+				backgroundColor: '#d64541',
 				fill: false,
 				data: [],
 				yAxisID: 'humid-axis'
