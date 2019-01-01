@@ -77,7 +77,7 @@ $(document).ready(function(){
 	window.myLine.update();
 	
 	setInterval(function() {
-		$.get('http://' + document.domain + ':' + location.port +'/data/' + Date.now()/1000.0, function(data, status) {
+		$.get('http://' + document.domain + ':' + location.port +'/data/' + Math.round(Date.now()/1000), function(data, status) {
 			console.log(data);
 			for(i = 0; i < data.length; i++) {
 				config.data.datasets[0].data.push({
