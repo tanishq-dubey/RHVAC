@@ -119,11 +119,12 @@ class System:
         
         
     def PruneChart(self):
-        if len(self.chartData["time"]) > 60000:
+        if len(self.chartData["time"]) > 50:
+            self.chartData["time"] = self.chartData["time"][1::2]
+            self.chartData["temp"] = self.chartData["temp"][1::2]
+            self.chartData["humid"] = self.chartData["humid"][1::2]
             self.chartData["time"].pop(0)
-        if len(self.chartData["temp"]) > 60000:
             self.chartData["temp"].pop(0)
-        if len(self.chartData["humid"]) > 60000:
             self.chartData["humid"].pop(0)
 
 # Relay pins (not GPIO pins)
