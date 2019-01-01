@@ -75,9 +75,10 @@ $(document).ready(function(){
 	});
 	window.myLine = new Chart(ctx, config);
 	window.myLine.update();
+	var lastTime = Math.round(Date.now()/1000);
 	
 	setInterval(function() {
-		$.get('http://' + document.domain + ':' + location.port +'/data/' + Math.round(Date.now()/1000), function(data, status) {
+		$.get('http://' + document.domain + ':' + location.port +'/data/' + lastTime, function(data, status) {
 			console.log(data);
 			for(i = 0; i < data.length; i++) {
 				config.data.datasets[0].data.push({
@@ -91,6 +92,7 @@ $(document).ready(function(){
 			}
 		});
 		window.myLine.update();
+		lastTime = Math.round(Date.now()/1000);
 	}, 5000);
 
     //receive details from server
