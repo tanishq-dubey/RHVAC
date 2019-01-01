@@ -74,6 +74,24 @@ $(document).ready(function(){
 		});
 	});
 	window.myLine = new Chart(ctx, config);
+	window.myLine.update();
+	
+	setInterval(function() {
+		$.get('http://' + document.domain + ':' + location.port +'/data/' + Date.now(), function(data, status) {
+			console.log(data);
+			data.map( function(item) {
+				config.data.datasets[0].data.push({
+					x: item.time,
+					y: item.temp
+				});
+				config.data.datasets[1].data.push({
+					x: item.time,
+					y: item.humid
+				});
+			});
+		});
+		window.myLine.update();
+	}, 5000);
 
     //receive details from server
     socket.on('tempHeartbeat', function(msg) {
