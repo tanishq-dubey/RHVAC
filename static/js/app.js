@@ -64,11 +64,11 @@ $(document).ready(function(){
 		console.log(data);
 		for(i = 0; i < data.length; i++) {
 				config.data.datasets[0].data.push({
-					x: data[i].time,
+					x: data[i].time * 1000,
 					y: data[i].temp
 				});
 				config.data.datasets[1].data.push({
-					x: data[i].time,
+					x: data[i].time * 1000,
 					y: data[i].humid
 				});
 			}
@@ -82,11 +82,11 @@ $(document).ready(function(){
 			console.log(data);
 			for(i = 0; i < data.length; i++) {
 				config.data.datasets[0].data.push({
-					x: data[i].time,
+					x: data[i].time * 1000,
 					y: data[i].temp
 				});
 				config.data.datasets[1].data.push({
-					x: data[i].time,
+					x: data[i].time * 1000,
 					y: data[i].humid
 				});
 			}
