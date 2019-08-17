@@ -33,15 +33,8 @@ $(document).ready(function(){
 				xAxes: [{
 					type: 'time',
 					display: true,
-					scaleLabel: {
-						display: true,
-						labelString: 'Time'
-					},
-					ticks: {
-						major: {
-							fontStyle: 'bold',
-							fontColor: '#FF0000'
-						}
+					time: {
+						unit: 'minute'
 					}
 				}],
 				yAxes: [{
@@ -50,12 +43,20 @@ $(document).ready(function(){
 					position: 'left',
 					labelString: 'Temperature',
 					id: 'temp-axis',
+					ticks: {
+						suggestedMin: 55,
+						suggestedMax: 95
+					}
 				}, {
 					type: 'linear',
 					display: true,
 					position: 'right',
 					labelString: 'Humidity',
 					id: 'humid-axis',
+					ticks: {
+						suggestedMin: 45,
+						suggestedMax: 70
+					}
 				}],
 			}
 		}
@@ -64,11 +65,11 @@ $(document).ready(function(){
 		console.log(data);
 		for(i = 0; i < data.length; i++) {
 				config.data.datasets[0].data.push({
-					x: data[i].time * 1000,
+					x: new Date(data[i].time * 1000),
 					y: data[i].temp
 				});
 				config.data.datasets[1].data.push({
-					x: data[i].time * 1000,
+					x: new Date(data[i].time * 1000),
 					y: data[i].humid
 				});
 			}
@@ -82,11 +83,11 @@ $(document).ready(function(){
 			console.log(data);
 			for(i = 0; i < data.length; i++) {
 				config.data.datasets[0].data.push({
-					x: data[i].time * 1000,
+					x: new Date(data[i].time * 1000),
 					y: data[i].temp
 				});
 				config.data.datasets[1].data.push({
-					x: data[i].time * 1000,
+					x: new Date(data[i].time * 1000),
 					y: data[i].humid
 				});
 			}

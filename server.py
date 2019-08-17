@@ -13,6 +13,8 @@ from luma.core.legacy.font import proportional, CP437_FONT, TINY_FONT, SINCLAIR_
 
 import pandas as pd
 
+from influxdb import InfluxDBClient
+
 import time
 import signal
 import sys
@@ -89,6 +91,7 @@ class System:
 
     current_temp = 0.0
     instant_temp = 0.0
+    instant_humd = 0.0
     desired_temp = 75.0
 
     temps = CircularBuffer(60)
@@ -119,7 +122,7 @@ class System:
         
         
     def PruneChart(self):
-        if len(self.chartData["time"]) > 50:
+        if len(self.chartData["time"]) > 500:
             self.chartData["time"] = self.chartData["time"][1::2]
             self.chartData["temp"] = self.chartData["temp"][1::2]
             self.chartData["humid"] = self.chartData["humid"][1::2]
@@ -164,6 +167,24 @@ app = Flask(__name__)
 socketio = SocketIO(app)
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
+
+def heatIdxCalc(temp, humid):
+    heatIndex = 0.5 * (temp + 61.0 + ((temp - 68.0) * 1.2) + (humid * 0.094))
+    val = (heatIndex + temp)/2.0
+    if val > 80:
+        heatIndex = -42.379 + 2.04901523*temp 
+        + 10.14333127*humid - .22475541*temp*humid 
+        - .00683783*temp*temp - .05481717*humid*humid 
+        + .00122874*temp*temp*humid 
+        + .00085282*temp*humid*humid 
+        - .00000199*temp*temp*humid*humid
+        if humid < 13 and (temp > 80 and temp < 112):
+            heatIndex = heatIndex - ((13-humid)/4)*math.sqrt((17-abs(T-95.))/17)
+        elif humid > 85 and (temp > 80 and temp < 87):
+            heatIndex = heatIndex + ((humid-85)/10) * ((87-temp)/5)
+        if heatIndex < 80:
+            heatIndex = 0.5 * (temp + 61.0 + ((temp-68.0)*1.2) + (humid*0.094))
+    return heatIndex
 
 # Just turn on the fans
 def enable_fans_only(fan_speed_high=False):
@@ -277,11 +298,13 @@ def measure_temp_threaded():
 
     humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, temp_pin)
     temperature = temperature * 9/5.0 + 32
+    temperature = heatIdxCalc(temperature, humidity)
 
     lock.acquire()
     system.temps.write(temperature)
     system.humid.write(humidity)
     system.instant_temp = temperature
+    system.instant_humd = humidity
     system.chartData["time"].append(time.time())
     system.chartData["temp"].append(temperature)
     system.chartData["humid"].append(humidity)
@@ -299,12 +322,14 @@ def measure_temp():
     print("Measuring temp...")
     humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, temp_pin)
     temperature = temperature * 9/5.0 + 32
+    temperature = heatIdxCalc(temperature, humidity)
     print("Read value of %f with humidity" % (temperature))
 
     lock.acquire()
     system.temps.write(temperature)
     system.humid.write(humidity)
     system.instant_temp = temperature
+    system.instant_humd = humidity
     system.chartData["time"].append(time.time())
     system.chartData["temp"].append(temperature)
     system.chartData["humid"].append(humidity)
@@ -350,6 +375,10 @@ def main():
     measure_temp()
     init_display()
 
+    print("connecting to influx...")
+    client = InfluxDBClient("192.168.1.127", 8086, "dubey", "dubeypass", "temps")
+    print("connected to influx!")
+
     temps = system.temps.read_all()
 
     threading.Thread(target=measure_temp_threaded).start()
@@ -378,6 +407,8 @@ def main():
         temp_diff = round(curr_temp - system.desired_temp, 2)
 
         time_to_temp = int(math.ceil(abs((curr_temp - system.desired_temp)/rate)))/60
+        cTemps = system.temps.read_all()
+        time_to_temp = ( (curr_temp - (sum(cTemps)/(float(len(cTemps))))/ (len(cTemps) * 2.25) ))/60.0
 
         enabled = system.system_state != State.DISABLED
         msg = {'current_temperature': round(curr_temp, 1),
@@ -394,6 +425,19 @@ def main():
         print("Current status: %f, %f=>%f\tLast read val: %f" % (temp_diff, curr_temp, system.desired_temp, system.instant_temp))
         print(system)
         print("==============")
+
+        data = [
+                {
+                    "measurement" : "Room temperature",
+                    "fields": {
+                        "temperature" : float(system.instant_temp),
+                        "desired" : float(system.desired_temp),
+                        "humidity": float(system.instant_humd),
+                        "state" : float(system.system_state)
+                        }
+                    }
+                ]
+        client.write_points(data)
 
         if system.system_state == State.DISABLED:
             if system.system_state_desired == StateDesired.ACTIVE:
